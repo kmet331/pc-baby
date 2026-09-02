@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>타자 연습 - 화분에 물주기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gothic+A1:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#cfeaf7;
+    --sky-bottom:#f3f8ea;
+    --ink:#2b2420;
+    --ink-soft:#5a4f42;
+    --paper:#fffdf6;
+    --pot-clay:#c9714b;
+    --pot-clay-dark:#a9583a;
+    --stem:#4f9d5c;
+    --leaf:#68b56f;
+    --petal:#f2879a;
+    --petal-center:#f4c05e;
+    --correct:#3f9c62;
+    --wrong:#d3555a;
+    --gold:#e8a33d;
+    --water:#5aa9e6;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Gothic A1', sans-serif;
+    color:var(--ink);
+    background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom) 65%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 20px 16px 40px;
+  }
+
+  .topbar{
+    width:100%;
+    max-width: 720px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 10px;
+  }
+  .back-link{
+    text-decoration:none;
+    color: var(--ink-soft);
+    font-weight:700;
+    font-size:15px;
+    background: var(--paper);
+    padding: 8px 16px;
+    border-radius: 20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  }
+  .level-pill{
+    font-family:'Jua', sans-serif;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+  }
+
+  h1{
+    font-family:'Jua', sans-serif;
+    font-size: clamp(24px, 5vw, 34px);
+    margin: 10px 0 4px;
+    text-align:center;
+  }
+  .sub{
+    color: var(--ink-soft);
+    font-size: 15px;
+    margin: 0 0 20px;
+    text-align:center;
+  }
+
+  /* Progress dots */
+  .progress{
+    display:flex;
+    gap:8px;
+    margin-bottom: 26px;
+  }
+  .dot{
+    width:14px; height:14px;
+    border-radius:50%;
+    background: rgba(0,0,0,0.15);
+    transition: background .2s ease, transform .2s ease;
+  }
+  .dot.filled{
+    background: var(--stem);
+    transform: scale(1.15);
+  }
+
+  /* Scene: pot + growing plant */
+  .scene{
+    position:relative;
+    width: 220px;
+    height: 220px;
+    margin-bottom: 8px;
+  }
+  .pot{
+    position:absolute;
+    bottom:0; left:50%;
+    transform: translateX(-50%);
+    width: 120px; height: 90px;
+    background: linear-gradient(180deg, var(--pot-clay), var(--pot-clay-dark));
+    border-radius: 8px 8px 20px 20px;
+  }
+  .pot::before{
+    content:'';
+    position:absolute;
+    top:-12px; left:-8px;
+    width: calc(100% + 16px);
+    height: 20px;
+    background: var(--pot-clay-dark);
+    border-radius: 6px;
+  }
+  .stem{
+    position:absolute;
+    bottom: 70px; left:50%;
+    width: 6px;
+    background: var(--stem);
+    border-radius: 3px;
+    transform: translateX(-50%);
+    transition: height .4s ease;
+    height: 0px;
+  }
+  .leaf{
+    position:absolute;
+    width: 34px; height: 20px;
+    background: var(--leaf);
+    border-radius: 0 100% 0 100%;
+    opacity:0;
+    transition: opacity .4s ease;
+  }
+  .leaf.left{ transform: rotate(-15deg); }
+  .leaf.right{ transform: rotate(15deg) scaleX(-1); }
+  .flower{
+    position:absolute;
+    left:50%;
+    transform: translateX(-50%) scale(0);
+    transition: transform .5s cubic-bezier(.34,1.56,.64,1);
+    width: 70px; height: 70px;
+  }
+  .flower .petal{
+    position:absolute;
+    width: 30px; height: 40px;
+    background: var(--petal);
+    border-radius: 50%;
+    top:50%; left:50%;
+    transform-origin: 50% 0%;
+    margin-left:-15px;
+  }
+  .flower .petal:nth-child(1){ transform: rotate(0deg) translateY(-40px); }
+  .flower .petal:nth-child(2){ transform: rotate(72deg) translateY(-40px); }
+  .flower .petal:nth-child(3){ transform: rotate(144deg) translateY(-40px); }
+  .flower .petal:nth-child(4){ transform: rotate(216deg) translateY(-40px); }
+  .flower .petal:nth-child(5){ transform: rotate(288deg) translateY(-40px); }
+  .flower .center{
+    position:absolute;
+    width: 26px; height: 26px;
+    background: var(--petal-center);
+    border-radius:50%;
+    top:50%; left:50%;
+    transform: translate(-50%,-50%);
+  }
+
+  /* Word card */
+  .word-card{
+    background: var(--paper);
+    border-radius: 16px;
+    padding: 26px 30px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+    text-align:center;
+    width: 100%;
+    max-width: 480px;
+    margin-top: 12px;
+  }
+  .word-display{
+    font-family:'Jua', sans-serif;
+    font-size: clamp(30px, 8vw, 44px);
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+    min-height: 56px;
+  }
+  .char{
+    color: rgba(0,0,0,0.25);
+  }
+  .char.correct{ color: var(--correct); }
+  .char.wrong{ color: var(--wrong); text-decoration: underline wavy var(--wrong); }
+  .char.current{
+    color: var(--ink);
+    border-bottom: 4px solid var(--gold);
+  }
+
+  input#typeInput{
+    width: 100%;
+    font-size: 24px;
+    font-family:'Gothic A1', sans-serif;
+    font-weight:700;
+    text-align:center;
+    padding: 14px 10px;
+    border-radius: 12px;
+    border: 3px solid #e4dcc9;
+    outline:none;
+    background: #fbf6ea;
+    color: var(--ink);
+  }
+  input#typeInput:focus{
+    border-color: var(--gold);
+  }
+
+  .hint{
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  /* Completion overlay */
+  .complete-screen{
+    display:none;
+    text-align:center;
+    background: var(--paper);
+    border-radius: 20px;
+    padding: 40px 30px;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+    max-width: 420px;
+    width:100%;
+    margin-top: 20px;
+  }
+  .complete-screen.show{ display:block; }
+  .stamp{
+    display:inline-block;
+    border: 4px solid var(--correct);
+    color: var(--correct);
+    font-family:'Jua', sans-serif;
+    font-size: 26px;
+    padding: 8px 22px;
+    border-radius: 8px;
+    transform: rotate(-6deg);
+    margin-bottom: 18px;
+  }
+  .complete-screen p{
+    font-size: 16px;
+    color: var(--ink-soft);
+    margin-bottom: 24px;
+  }
+  .btn-row{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'Gothic A1', sans-serif;
+    font-weight:900;
+    font-size: 15px;
+    padding: 12px 22px;
+    border-radius: 24px;
+    border:none;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-block;
+  }
+  .btn.primary{ background: var(--stem); color:white; }
+  .btn.secondary{ background:#eee3cd; color: var(--ink-soft); }
+
+  .game-area.hidden{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="index.html">← 게시판으로</a>
+  <span class="level-pill" id="levelPill">초보자</span>
+</div>
+
+<h1>화분에 물주기</h1>
+<p class="sub">글자를 입력하면 화분에 물이 차오르고, 열 단어를 다 채우면 꽃이 활짝 핍니다</p>
+
+<div class="progress" id="progress"></div>
+
+<div class="scene">
+  <div class="leaf left" id="leafLeft"></div>
+  <div class="leaf right" id="leafRight"></div>
+  <div class="stem" id="stem"></div>
+  <div class="flower" id="flower">
+    <div class="petal"></div><div class="petal"></div><div class="petal"></div>
+    <div class="petal"></div><div class="petal"></div>
+    <div class="center"></div>
+  </div>
+  <div class="pot"></div>
+</div>
+
+<div class="game-area" id="gameArea">
+  <div class="word-card">
+    <div class="word-display" id="wordDisplay"></div>
+    <input id="typeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="여기에 위 단어를 똑같이 입력하세요">
+    <p class="hint">Enter를 누르지 않아도 다 입력하면 자동으로 다음 단어로 넘어가요</p>
+  </div>
+</div>
+
+<div class="complete-screen" id="completeScreen">
+  <div class="stamp">완료!</div>
+  <p>10개 단어를 모두 완성했어요.<br>사무실에서 자주 쓰는 단어들이었어요 — 이제 눈에 익숙해졌을 거예요.</p>
+  <div class="btn-row">
+    <button class="btn primary" onclick="restart()">다시 연습하기</button>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const level = params.get('level') || localStorage.getItem('oe_level') || 'beginner';
+
+  const WORDS_PER_ROUND = 10;
+
+  const wordPools = {
+    beginner: ['저장', '폴더', '파일', '복사', '삭제', '열기', '닫기', '붙여넣기', '잘라내기', '새 파일',
+      '문서', '휴지통', '바탕화면', '이름표', '검색', '인쇄', '메일', '사진', '압축', '다운로드',
+      '클릭', '더블클릭', '드래그', '스크롤', '확대', '축소', '로그인', '로그아웃', '비밀번호', '아이디',
+      '인터넷', '브라우저', '아이콘', '마우스', '키보드', '모니터', '프린터', '와이파이', '새 창', '창 닫기'],
+    intermediate: ['파일 저장하기', '새 폴더 만들기', '이름 바꾸기', '휴지통 비우기', '압축 풀기', '복사해서 붙여넣기', '바탕화면 정리', '창 최소화', '인쇄 미리보기', '파일 옮기기',
+      '메일 첨부하기', '사진 회전하기', '창 크기 조절', '즐겨찾기 추가', '자동 저장 켜기', '파일 검색하기', '휴지통 복원', '폴더 이동하기', '화면 캡처하기', '클라우드 업로드',
+      '비밀번호 변경하기', '탭 여러 개 열기', '파일 여러 개 선택', '드라이브 용량 확인', '와이파이 연결하기', '알림 끄기', '글자 크기 키우기', '화면 밝기 조절', '마우스 속도 조절', '프로그램 설치하기'],
+    advanced: ['보고서 파일을 저장하세요', '사진 폴더를 새로 만드세요', '문서를 복사해서 붙여넣으세요', '오래된 파일을 삭제하세요', '파일 이름을 오늘 날짜로 바꾸세요', '자료를 압축해서 보내세요', '바탕화면 아이콘을 정리하세요', '메일에 파일을 첨부하세요', '작업한 내용을 저장하고 종료하세요', '파일을 클라우드에 올리세요',
+      '휴지통에서 파일을 복원하세요', '문서를 인쇄해서 제출하세요', '중요한 파일은 즐겨찾기에 추가하세요', '회의 자료를 팀 폴더에 옮기세요', '화면을 캡처해서 저장하세요', '엑셀 파일을 새 이름으로 저장하세요', '사진 크기를 줄여서 보내세요', '파일 두 개를 하나로 압축하세요', '자동 저장 기능을 켜두세요', '작업 중인 창을 최소화하세요',
+      '탭을 여러 개 띄워서 비교하세요', '와이파이를 연결하고 인터넷을 켜세요', '비밀번호를 새로 설정하세요', '필요 없는 파일을 골라 지우세요', '드라이브 용량을 확인하고 정리하세요', '알림을 꺼서 집중하세요', '글자 크기를 키워서 보기 편하게 하세요', '프린터를 연결하고 인쇄를 눌러보세요', '사진을 회전시켜 저장하세요', '새 프로그램을 설치해보세요']
+  };
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const levelLabels = { beginner: '초보자', intermediate: '중급자', advanced: '고급자' };
+  document.getElementById('levelPill').textContent = levelLabels[level] || '초보자';
+
+  const pool = wordPools[level] || wordPools.beginner;
+  let words = shuffle(pool).slice(0, WORDS_PER_ROUND);
+  let current = 0;
+
+  const progressEl = document.getElementById('progress');
+  const wordDisplay = document.getElementById('wordDisplay');
+  let input = document.getElementById('typeInput');
+  const gameArea = document.getElementById('gameArea');
+  const completeScreen = document.getElementById('completeScreen');
+  const stem = document.getElementById('stem');
+  const leafLeft = document.getElementById('leafLeft');
+  const leafRight = document.getElementById('leafRight');
+  const flower = document.getElementById('flower');
+
+  function buildProgressDots(){
+    progressEl.innerHTML = '';
+    words.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.id = 'dot-' + i;
+      progressEl.appendChild(dot);
+    });
+  }
+
+  function renderWord(){
+    const word = words[current];
+    const typed = input.value;
+    wordDisplay.innerHTML = '';
+    for (let i = 0; i < word.length; i++){
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.textContent = word[i];
+      if (i < typed.length){
+        span.classList.add(typed[i] === word[i] ? 'correct' : 'wrong');
+      } else if (i === typed.length){
+        span.classList.add('current');
+      }
+      wordDisplay.appendChild(span);
+    }
+  }
+
+  function growPlant(){
+    const pct = current / words.length; // 0 to <1 during play
+    stem.style.height = (30 + pct * 100) + 'px';
+    if (current >= 2){ leafLeft.style.opacity = 1; leafLeft.style.bottom = '95px'; leafLeft.style.left = '42%'; }
+    if (current >= 4){ leafRight.style.opacity = 1; leafRight.style.bottom = '120px'; leafRight.style.left = '58%'; }
+  }
+
+  function updateDots(){
+    for (let i = 0; i < current; i++){
+      const d = document.getElementById('dot-' + i);
+      if (d) d.classList.add('filled');
+    }
+  }
+
+  function nextWord(){
+    current++;
+    updateDots();
+    growPlant();
+    resetInputForNextWord();
+    if (current >= words.length){
+      finishGame();
+      return;
+    }
+    renderWord();
+  }
+
+  // Some Korean input methods keep an internal composition buffer tied to
+  // the specific input element: clearing .value and even blur()+focus() on
+  // the SAME element can still let a leftover jamo reappear once it regains
+  // focus. Swapping in a brand-new <input> node guarantees a clean slate
+  // with zero composition history.
+  function resetInputForNextWord(){
+    const fresh = input.cloneNode(true);
+    fresh.value = '';
+    input.replaceWith(fresh);
+    input = fresh;
+    attachInputListener(input);
+    input.focus();
+  }
+
+  function onInputChange(){
+    renderWord();
+    checkMatch();
+  }
+
+  function attachInputListener(el){
+    el.addEventListener('input', onInputChange);
+  }
+
+  function finishGame(){
+    gameArea.classList.add('hidden');
+    stem.style.height = '130px';
+    flower.style.transform = 'translateX(-50%) scale(1)';
+    completeScreen.classList.add('show');
+    localStorage.setItem('oe_typing_done', 'true');
+  }
+
+  function restart(){
+    words = shuffle(pool).slice(0, WORDS_PER_ROUND);
+    current = 0;
+    completeScreen.classList.remove('show');
+    gameArea.classList.remove('hidden');
+    stem.style.height = '0px';
+    leafLeft.style.opacity = 0;
+    leafRight.style.opacity = 0;
+    flower.style.transform = 'translateX(-50%) scale(0)';
+    buildProgressDots();
+    resetInputForNextWord(); // gameArea is visible now, so focus() actually takes effect
+    renderWord();
+  }
+
+  function checkMatch(){
+    if (input.value === words[current]){
+      nextWord();
+    }
+  }
+
+  attachInputListener(input);
+
+  buildProgressDots();
+  renderWord();
+  window.addEventListener('load', () => input.focus());
+</script>
+
+</body>
+</html>
