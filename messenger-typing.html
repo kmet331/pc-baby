@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오피스톡 - 답장 연습</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gothic+A1:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2b3a55;
+    --navy-dark:#1e2940;
+    --chat-bg:#e7ecf3;
+    --bubble-in:#ffffff;
+    --bubble-out:#e8a33d;
+    --bubble-out-text:#2b2420;
+    --ink:#2b2420;
+    --ink-soft:#5a6478;
+    --correct:#3f9c62;
+    --wrong:#d3555a;
+    --gold:#e8a33d;
+    --page:#f6f4ee;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Gothic A1', sans-serif;
+    color:var(--ink);
+    background: var(--page);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 20px 14px 30px;
+  }
+
+  .topbar{
+    width:100%;
+    max-width: 480px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 10px;
+  }
+  .back-link{
+    text-decoration:none;
+    color: var(--ink-soft);
+    font-weight:700;
+    font-size:14px;
+    background: white;
+    padding: 7px 14px;
+    border-radius: 20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  }
+  .level-pill{
+    font-family:'Jua', sans-serif;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+  }
+
+  /* Phone-style chat window */
+  .phone{
+    width: 100%;
+    max-width: 480px;
+    background: var(--chat-bg);
+    border-radius: 22px;
+    overflow:hidden;
+    box-shadow: 0 16px 34px rgba(0,0,0,0.18);
+    display:flex;
+    flex-direction:column;
+    height: 78vh;
+    max-height: 640px;
+  }
+
+  .chat-header{
+    background: var(--navy);
+    color: white;
+    padding: 16px 20px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    flex-shrink:0;
+  }
+  .chat-header .avatar{
+    width: 38px; height: 38px;
+    border-radius:50%;
+    background: var(--gold);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 20px;
+    flex-shrink:0;
+  }
+  .chat-header .who{ flex:1; }
+  .chat-header .name{
+    font-family:'Jua', sans-serif;
+    font-size: 17px;
+  }
+  .chat-header .status{
+    font-size: 12px;
+    color: #b9c2d6;
+  }
+  .chat-header .counter{
+    font-family:'Jua', sans-serif;
+    background: rgba(255,255,255,0.12);
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+
+  .thread{
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 8px;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    background:
+      radial-gradient(circle, rgba(0,0,0,0.03) 1px, transparent 1px) 0 0/16px 16px,
+      var(--chat-bg);
+  }
+
+  .row{ display:flex; gap: 8px; }
+  .row.in{ justify-content:flex-start; }
+  .row.out{ justify-content:flex-end; }
+
+  .sender-avatar{
+    width: 30px; height: 30px;
+    border-radius:50%;
+    background: #dfe5ee;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 15px;
+    flex-shrink:0;
+    margin-top: 16px;
+  }
+  .msg-col{ max-width: 78%; }
+  .sender-name{
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight:700;
+    margin: 0 0 3px 2px;
+  }
+
+  .bubble{
+    max-width: 100%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height:1.5;
+    font-weight: 600;
+  }
+  .bubble.in{
+    background: var(--bubble-in);
+    color: var(--ink);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .bubble.out{
+    background: var(--bubble-out);
+    color: var(--bubble-out-text);
+    border-bottom-right-radius: 4px;
+  }
+
+  /* Active (currently being typed) request, pinned above the input */
+  .active-zone{
+    flex-shrink:0;
+    background: var(--bubble-in);
+    border-top: 1px solid rgba(0,0,0,0.06);
+    padding: 14px 16px 16px;
+  }
+  .active-request-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 8px;
+  }
+  .active-request{
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight:700;
+  }
+  .speed-indicator{
+    font-family:'Jua', sans-serif;
+    font-size: 13px;
+    color: var(--navy);
+    background: #eef1f7;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space:nowrap;
+  }
+  .word-display{
+    font-family:'Jua', sans-serif;
+    font-size: clamp(22px, 6vw, 28px);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    min-height: 34px;
+  }
+  .char{ color: rgba(0,0,0,0.28); }
+  .char.correct{ color: var(--correct); }
+  .char.wrong{ color: var(--wrong); text-decoration: underline wavy var(--wrong); }
+  .char.current{ color: var(--ink); border-bottom: 3px solid var(--gold); }
+
+  .input-row{
+    display:flex;
+    gap: 8px;
+  }
+  input#typeInput{
+    flex:1;
+    font-size: 17px;
+    font-family:'Gothic A1', sans-serif;
+    font-weight:700;
+    padding: 12px 14px;
+    border-radius: 22px;
+    border: 2px solid #e4dcc9;
+    outline:none;
+    background: #fbf6ea;
+    color: var(--ink);
+  }
+  input#typeInput:focus{ border-color: var(--gold); }
+
+  .send-btn{
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: var(--navy);
+    color: white;
+    font-size: 18px;
+    cursor:pointer;
+    flex-shrink:0;
+    transition: transform .12s ease;
+  }
+  .send-btn:active{ transform: scale(0.92); }
+  .send-btn.shake{ animation: shake .35s ease; }
+  @keyframes shake{
+    0%,100%{ transform: translateX(0); }
+    25%{ transform: translateX(-5px); }
+    75%{ transform: translateX(5px); }
+  }
+
+  /* Completion overlay */
+  .complete-screen{
+    display:none;
+    text-align:center;
+    background: white;
+    border-radius: 20px;
+    padding: 36px 28px;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+    max-width: 420px;
+    width:100%;
+    margin-top: 18px;
+  }
+  .complete-screen.show{ display:block; }
+  .stamp{
+    display:inline-block;
+    border: 4px solid var(--correct);
+    color: var(--correct);
+    font-family:'Jua', sans-serif;
+    font-size: 24px;
+    padding: 7px 20px;
+    border-radius: 8px;
+    transform: rotate(-6deg);
+    margin-bottom: 16px;
+  }
+  .complete-screen p{
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+  .avg-speed{
+    font-family:'Jua', sans-serif;
+    font-size: 20px;
+    color: var(--navy);
+    margin-bottom: 22px;
+  }
+  .btn{
+    font-family:'Gothic A1', sans-serif;
+    font-weight:900;
+    font-size: 15px;
+    padding: 12px 24px;
+    border-radius: 24px;
+    border:none;
+    cursor:pointer;
+    background: var(--navy);
+    color: white;
+  }
+
+  .phone.hidden{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="index.html">← 게시판으로</a>
+  <span class="level-pill" id="levelPill">초보자</span>
+</div>
+
+<div class="phone" id="phone">
+  <div class="chat-header">
+    <div class="avatar">👥</div>
+    <div class="who">
+      <div class="name">사무실 단톡방</div>
+      <div class="status">동료들이 이것저것 부탁해요</div>
+    </div>
+    <div class="counter" id="counter">0 / 10</div>
+  </div>
+
+  <div class="thread" id="thread"></div>
+
+  <div class="active-zone">
+    <div class="active-request-row">
+      <div class="active-request">그대로 입력해서 답장하세요</div>
+      <div class="speed-indicator" id="speedIndicator">-- 타/분</div>
+    </div>
+    <div class="word-display" id="wordDisplay"></div>
+    <div class="input-row">
+      <input id="typeInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="여기에 입력하세요">
+      <button class="send-btn" id="sendBtn" title="보내기">➤</button>
+    </div>
+  </div>
+</div>
+
+<div class="complete-screen" id="completeScreen">
+  <div class="stamp">완료!</div>
+  <p>오늘 메신저 답장을 10개 모두 보냈어요.<br>사무실에서 자주 쓰는 표현들이 눈에 익숙해졌을 거예요.</p>
+  <div class="avg-speed" id="avgSpeed">평균 -- 타/분</div>
+  <button class="btn" onclick="restart()">다시 연습하기</button>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const level = params.get('level') || localStorage.getItem('oe_level') || 'beginner';
+
+  const WORDS_PER_ROUND = 10;
+
+  const wordPools = {
+    beginner: ['저장', '폴더', '파일', '복사', '삭제', '열기', '닫기', '붙여넣기', '잘라내기', '새 파일',
+      '문서', '휴지통', '바탕화면', '이름표', '검색', '인쇄', '메일', '사진', '압축', '다운로드',
+      '클릭', '더블클릭', '드래그', '스크롤', '확대', '축소', '로그인', '로그아웃', '비밀번호', '아이디',
+      '인터넷', '브라우저', '아이콘', '마우스', '키보드', '모니터', '프린터', '와이파이', '새 창', '창 닫기'],
+    intermediate: ['파일 저장하기', '새 폴더 만들기', '이름 바꾸기', '휴지통 비우기', '압축 풀기', '복사해서 붙여넣기', '바탕화면 정리', '창 최소화', '인쇄 미리보기', '파일 옮기기',
+      '메일 첨부하기', '사진 회전하기', '창 크기 조절', '즐겨찾기 추가', '자동 저장 켜기', '파일 검색하기', '휴지통 복원', '폴더 이동하기', '화면 캡처하기', '클라우드 업로드',
+      '비밀번호 변경하기', '탭 여러 개 열기', '파일 여러 개 선택', '드라이브 용량 확인', '와이파이 연결하기', '알림 끄기', '글자 크기 키우기', '화면 밝기 조절', '마우스 속도 조절', '프로그램 설치하기'],
+    advanced: ['보고서 파일을 저장하세요', '사진 폴더를 새로 만드세요', '문서를 복사해서 붙여넣으세요', '오래된 파일을 삭제하세요', '파일 이름을 오늘 날짜로 바꾸세요', '자료를 압축해서 보내세요', '바탕화면 아이콘을 정리하세요', '메일에 파일을 첨부하세요', '작업한 내용을 저장하고 종료하세요', '파일을 클라우드에 올리세요',
+      '휴지통에서 파일을 복원하세요', '문서를 인쇄해서 제출하세요', '중요한 파일은 즐겨찾기에 추가하세요', '회의 자료를 팀 폴더에 옮기세요', '화면을 캡처해서 저장하세요', '엑셀 파일을 새 이름으로 저장하세요', '사진 크기를 줄여서 보내세요', '파일 두 개를 하나로 압축하세요', '자동 저장 기능을 켜두세요', '작업 중인 창을 최소화하세요',
+      '탭을 여러 개 띄워서 비교하세요', '와이파이를 연결하고 인터넷을 켜세요', '비밀번호를 새로 설정하세요', '필요 없는 파일을 골라 지우세요', '드라이브 용량을 확인하고 정리하세요', '알림을 꺼서 집중하세요', '글자 크기를 키워서 보기 편하게 하세요', '프린터를 연결하고 인쇄를 눌러보세요', '사진을 회전시켜 저장하세요', '새 프로그램을 설치해보세요']
+  };
+
+  // Several coworkers with distinct tones, so the same request never feels
+  // like it's coming from the same repetitive voice. Kept separate from the
+  // exact text students must type, which always stays a clean word/phrase
+  // from wordPools above.
+  const personas = [
+    { name: '박대리', avatar: '👩\u200d💼', lines: [
+      '이거 좀 확인해서 보내주실 수 있나요?',
+      '바쁘시면 나중에 주셔도 돼요~',
+      '고생 많으시죠? 이것만 부탁드려요',
+      '이 단어 맞는지 한번 봐주세요',
+      '이따 회의 전까지 부탁드려요~',
+      '이거 처리되면 알려주세요',
+      '점심 먹고 천천히 봐주셔도 돼요'
+    ]},
+    { name: '김팀장', avatar: '🧑\u200d💼', lines: [
+      '이 자료 정리해서 회신 바랍니다.',
+      '오늘 중으로 처리 부탁드립니다.',
+      '확인 후 결과 회신하세요.',
+      '이 부분 다시 한번 검토해주세요.',
+      '보고 전에 확인 부탁드립니다.',
+      '기한 안에 마무리해주시기 바랍니다.',
+      '내일 오전까지 회신 주세요.'
+    ]},
+    { name: '신입사원', avatar: '🙋', lines: [
+      '선배님 이것 좀 봐주실 수 있을까요? 😊',
+      '죄송한데 이거 확인 부탁드려요!',
+      '제가 잘 몰라서 그런데 도와주세요!',
+      '이거 맞게 한 건지 봐주시겠어요?',
+      '알려주신 대로 해봤는데 맞을까요?',
+      '감사합니다, 미리 여쭤봐요 🙏',
+      '급해서 그런데 잠깐 봐주실 수 있어요?'
+    ]},
+    { name: '이과장(고객사)', avatar: '🧑\u200d💻', lines: [
+      '번거로우시겠지만 확인 부탁드립니다.',
+      '빠른 회신 부탁드립니다.',
+      '협조해주셔서 감사합니다.',
+      '급한 건은 아니지만 확인 요청드립니다.',
+      '내용 확인 후 회신 주시면 감사하겠습니다.',
+      '자료 전달 부탁드립니다.',
+      '검토 후 말씀 주시면 됩니다.'
+    ]}
+  ];
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  const levelLabels = { beginner: '초보자', intermediate: '중급자', advanced: '고급자' };
+  document.getElementById('levelPill').textContent = levelLabels[level] || '초보자';
+
+  const pool = wordPools[level] || wordPools.beginner;
+  let words = shuffle(pool).slice(0, WORDS_PER_ROUND);
+  let current = 0;
+
+  const thread = document.getElementById('thread');
+  const wordDisplay = document.getElementById('wordDisplay');
+  const counter = document.getElementById('counter');
+  const phone = document.getElementById('phone');
+  const completeScreen = document.getElementById('completeScreen');
+  const sendBtn = document.getElementById('sendBtn');
+  const speedIndicator = document.getElementById('speedIndicator');
+  const avgSpeedEl = document.getElementById('avgSpeed');
+  let input = document.getElementById('typeInput');
+
+  function addIncomingBubble(text, persona){
+    const row = document.createElement('div');
+    row.className = 'row in';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'sender-avatar';
+    avatar.textContent = persona.avatar;
+
+    const col = document.createElement('div');
+    col.className = 'msg-col';
+
+    const name = document.createElement('div');
+    name.className = 'sender-name';
+    name.textContent = persona.name;
+
+    const b = document.createElement('div');
+    b.className = 'bubble in';
+    b.textContent = text;
+
+    col.appendChild(name);
+    col.appendChild(b);
+    row.appendChild(avatar);
+    row.appendChild(col);
+    thread.appendChild(row);
+  }
+
+  function addOutgoingBubble(text){
+    const row = document.createElement('div');
+    row.className = 'row out';
+    const b = document.createElement('div');
+    b.className = 'bubble out';
+    b.textContent = text;
+    row.appendChild(b);
+    thread.appendChild(row);
+  }
+
+  function scrollThreadToBottom(){
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function loadRequest(){
+    const persona = personas[Math.floor(Math.random() * personas.length)];
+    const line = persona.lines[Math.floor(Math.random() * persona.lines.length)];
+    addIncomingBubble(line, persona);
+    scrollThreadToBottom();
+    renderWord();
+    counter.textContent = current + ' / ' + words.length;
+  }
+
+  function renderWord(){
+    const word = words[current];
+    const typed = input.value;
+    wordDisplay.innerHTML = '';
+    for (let i = 0; i < word.length; i++){
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.textContent = word[i];
+      if (i < typed.length){
+        span.classList.add(typed[i] === word[i] ? 'correct' : 'wrong');
+      } else if (i === typed.length){
+        span.classList.add('current');
+      }
+      wordDisplay.appendChild(span);
+    }
+  }
+
+  // Standard Korean typing tests count actual keystrokes (each consonant,
+  // vowel, and final-consonant component), not completed syllables — a
+  // single character like "안" is 3 keystrokes (ㅇ+ㅏ+ㄴ), and compound
+  // vowels/final consonants (ㅘ, ㄳ, etc.) take 2. Counting 1-per-syllable
+  // undercounts by roughly half compared to the numbers most typing
+  // programs report.
+  const COMPOUND_VOWELS = new Set([9, 10, 11, 14, 15, 16, 19]);
+  const COMPOUND_FINALS = new Set([3, 5, 6, 9, 10, 11, 12, 13, 14, 15, 18]);
+
+  function hangulKeystrokes(str){
+    let total = 0;
+    for (const ch of str){
+      const code = ch.codePointAt(0);
+      if (code >= 0xAC00 && code <= 0xD7A3){
+        const sIndex = code - 0xAC00;
+        const jung = Math.floor((sIndex % 588) / 28);
+        const jong = sIndex % 28;
+        total += 1; // 초성
+        total += COMPOUND_VOWELS.has(jung) ? 2 : 1; // 중성
+        if (jong !== 0){
+          total += COMPOUND_FINALS.has(jong) ? 2 : 1; // 받침
+        }
+      } else {
+        total += 1; // space, digits, punctuation, other letters
+      }
+    }
+    return total;
+  }
+
+  // Speed is measured only across the time actually spent typing each word,
+  // not the whole round — otherwise time spent reading each incoming chat
+  // message (which has nothing to do with typing speed) would drag the
+  // number down to a fraction of a real typing-test result.
+  let activeMs = 0;       // accumulated typing time across completed words
+  let charsDone = 0;      // accumulated correct characters across completed words
+  let wordStartTime = null; // timestamp of the first keystroke of the CURRENT word
+  let speedTimer = null;
+
+  function startRoundTimer(){
+    activeMs = 0;
+    charsDone = 0;
+    wordStartTime = null;
+    clearInterval(speedTimer);
+    speedTimer = setInterval(updateLiveSpeed, 300);
+    speedIndicator.textContent = '-- 타/분';
+  }
+
+  function liveCpm(){
+    let ms = activeMs;
+    let chars = charsDone;
+    if (wordStartTime !== null){
+      ms += Date.now() - wordStartTime;
+      chars += hangulKeystrokes(input.value);
+    }
+    const min = ms / 60000;
+    if (min < 0.017) return null; // less than ~1 second of actual typing so far
+    return Math.round(chars / min);
+  }
+
+  function updateLiveSpeed(){
+    const cpm = liveCpm();
+    speedIndicator.textContent = (cpm === null ? '--' : cpm) + ' 타/분';
+  }
+
+  function onInputChange(){
+    if (wordStartTime === null && input.value.length > 0){
+      wordStartTime = Date.now(); // starts the clock on the first keystroke of this word
+    }
+    renderWord();
+    updateLiveSpeed();
+    checkMatch();
+  }
+
+  function attachInputListener(el){
+    el.addEventListener('input', onInputChange);
+  }
+
+  // Swapping in a brand-new <input> node (instead of reusing the same one
+  // and clearing .value) avoids Korean IME composition state leaking a
+  // leftover jamo from the previous word into the next one.
+  function resetInputForNextWord(){
+    const fresh = input.cloneNode(true);
+    fresh.value = '';
+    input.replaceWith(fresh);
+    input = fresh;
+    attachInputListener(input);
+    input.focus();
+  }
+
+  function checkMatch(){
+    if (input.value === words[current]){
+      if (wordStartTime !== null){
+        activeMs += Date.now() - wordStartTime;
+        charsDone += hangulKeystrokes(words[current]);
+        wordStartTime = null;
+      }
+      addOutgoingBubble(words[current]);
+      scrollThreadToBottom();
+      current++;
+      resetInputForNextWord();
+      if (current >= words.length){
+        finishGame();
+        return;
+      }
+      loadRequest();
+    }
+  }
+
+  function nudgeSendButton(){
+    sendBtn.classList.remove('shake');
+    void sendBtn.offsetWidth; // restart animation
+    sendBtn.classList.add('shake');
+  }
+
+  sendBtn.addEventListener('click', () => {
+    if (input.value === words[current]){
+      checkMatch();
+    } else {
+      nudgeSendButton();
+      input.focus();
+    }
+  });
+
+  function finishGame(){
+    clearInterval(speedTimer);
+    const min = activeMs / 60000;
+    const avgCpm = min > 0 ? Math.round(charsDone / min) : 0;
+    avgSpeedEl.textContent = '평균 ' + avgCpm + ' 타/분';
+
+    phone.classList.add('hidden');
+    completeScreen.classList.add('show');
+    localStorage.setItem('oe_typing_done', 'true');
+  }
+
+  function restart(){
+    words = shuffle(pool).slice(0, WORDS_PER_ROUND);
+    current = 0;
+    thread.innerHTML = '';
+    completeScreen.classList.remove('show');
+    phone.classList.remove('hidden');
+    startRoundTimer();
+    loadRequest();
+    input.focus();
+  }
+
+  attachInputListener(input);
+  startRoundTimer();
+  loadRequest();
+  window.addEventListener('load', () => input.focus());
+</script>
+
+</body>
+</html>
