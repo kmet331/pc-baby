@@ -247,11 +247,11 @@
   </div>
 
   <div class="board">
-    <a class="note" id="typingNote" href="typing-beginner.html">
+    <a class="note" id="typingNote" href="messenger-typing.html">
       <span class="pin"></span>
-      <span class="note-icon">⌨️</span>
-      <h2 class="note-title">타자 연습</h2>
-      <p class="note-desc">글자를 하나씩 쳐서 화분에 꽃을 피워보세요</p>
+      <span class="note-icon">💬</span>
+      <h2 class="note-title">메신저 답장하기</h2>
+      <p class="note-desc">동료가 보낸 단어를 그대로 답장으로 보내보세요</p>
       <span class="stars" id="typingStars">☆☆☆</span>
     </a>
 
@@ -276,7 +276,7 @@
     <a class="note disabled" id="storyNote">
       <span class="pin"></span>
       <span class="soon-stamp">준비중</span>
-      <span class="note-icon">💬</span>
+      <span class="note-icon">📋</span>
       <h2 class="note-title">출근 첫날 미션</h2>
       <p class="note-desc">배운 걸 모두 모아 실전처럼 연습해요</p>
       <span class="stars">☆☆☆</span>
@@ -295,7 +295,7 @@
   function setLevel(level){
     localStorage.setItem(LEVEL_KEY, level);
     tabs.forEach(t => t.classList.toggle('active', t.dataset.level === level));
-    document.getElementById('typingNote').href = `typing-beginner.html?level=${level}`;
+    document.getElementById('typingNote').href = `messenger-typing.html?level=${level}`;
   }
 
   tabs.forEach(tab => {
