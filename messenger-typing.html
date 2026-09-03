@@ -617,6 +617,18 @@
     phone.classList.add('hidden');
     completeScreen.classList.add('show');
     localStorage.setItem('oe_typing_done', 'true');
+
+    // While typing, mobile browsers scroll the page up to keep the focused
+    // input above the on-screen keyboard. That scroll position doesn't
+    // reset on its own once the keyboard closes, which can leave the
+    // completion card below the fold. Close the keyboard and scroll the
+    // card into view explicitly so nothing needs a manual scroll.
+    if (document.activeElement && document.activeElement.blur){
+      document.activeElement.blur();
+    }
+    requestAnimationFrame(() => {
+      completeScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   function restart(){
