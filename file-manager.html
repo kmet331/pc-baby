@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>서류함 정리하기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gothic+A1:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2b3a55;
+    --ink:#2b2420;
+    --ink-soft:#5a6478;
+    --gold:#e8a33d;
+    --correct:#3f9c62;
+    --wrong:#d3555a;
+    --page:#f6f4ee;
+    --desk-top:#cfe0ea;
+    --desk-bottom:#e9eff2;
+    --icon-hover:rgba(255,255,255,0.5);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    height: var(--app-height, 100vh);
+    overflow:hidden;
+    background: var(--page);
+    font-family:'Gothic A1', sans-serif;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 16px 14px 14px;
+    user-select:none;
+  }
+
+  .topbar{
+    width:100%;
+    max-width: 520px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 10px;
+    flex-shrink:0;
+  }
+  .back-link{
+    text-decoration:none;
+    color: var(--ink-soft);
+    font-weight:700;
+    font-size:14px;
+    background: white;
+    padding: 7px 14px;
+    border-radius: 20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  }
+  .level-pill{
+    font-family:'Jua', sans-serif;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+  }
+
+  .app{
+    width:100%;
+    max-width: 520px;
+    flex: 1;
+    min-height: 0;
+    max-height: 720px;
+    display:flex;
+    flex-direction:column;
+    border-radius: 22px;
+    overflow:hidden;
+    box-shadow: 0 16px 34px rgba(0,0,0,0.18);
+  }
+
+  .mission-bar{
+    background: var(--navy);
+    color:white;
+    padding: 14px 18px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    flex-shrink:0;
+  }
+  .mission-bar .mission-text{
+    flex:1;
+    min-width:0;
+    font-size: 14px;
+    font-weight:700;
+    line-height:1.4;
+  }
+  .mission-bar .mission-counter{
+    font-family:'Jua', sans-serif;
+    background: rgba(255,255,255,0.14);
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+
+  .desktop{
+    flex:1;
+    min-height:0;
+    position:relative;
+    background: linear-gradient(160deg, var(--desk-top), var(--desk-bottom));
+    padding: 18px;
+    display:flex;
+    flex-wrap:wrap;
+    align-content:flex-start;
+    gap: 14px;
+    overflow:hidden;
+  }
+
+  .icon{
+    width: 84px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 4px;
+    padding: 8px 4px;
+    border-radius: 12px;
+    cursor:pointer;
+    touch-action: none;
+  }
+  .icon.selected{ background: var(--icon-hover); }
+  .icon .glyph{
+    font-size: 34px;
+    line-height:1;
+  }
+  .icon .label{
+    font-size: 12px;
+    font-weight:700;
+    text-align:center;
+    color: var(--ink);
+    word-break: break-all;
+    max-width: 100%;
+    background: rgba(255,255,255,0.55);
+    padding: 1px 5px;
+    border-radius: 6px;
+  }
+  .icon.cutting{ opacity: 0.45; }
+  .icon.dragging{ opacity:0.5; }
+
+  .trash-zone{
+    position:absolute;
+    right: 14px;
+    bottom: 14px;
+    width: 78px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 2px;
+    padding: 8px 4px;
+    border-radius: 12px;
+  }
+  .trash-zone.drag-over{
+    background: rgba(211,85,90,0.18);
+    outline: 2px dashed var(--wrong);
+  }
+  .trash-zone .glyph{ font-size: 36px; }
+  .trash-zone .label{
+    font-size: 11px;
+    font-weight:700;
+    color: var(--ink-soft);
+  }
+  .trash-badge{
+    position:absolute;
+    top:-2px; right: 6px;
+    background: #d3555a;
+    color:white;
+    font-family:'Jua', sans-serif;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    display:none;
+  }
+
+  /* Context menu */
+  .context-menu{
+    position:fixed;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.25);
+    padding: 6px;
+    display:none;
+    z-index: 50;
+    min-width: 160px;
+  }
+  .context-menu.show{ display:block; }
+  .context-menu button{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    font-family:'Gothic A1', sans-serif;
+    font-size: 15px;
+    font-weight:700;
+    color: var(--ink);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor:pointer;
+  }
+  .context-menu button:active{ background: #eef1f7; }
+
+  /* Modal (folder view / rename) */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background: rgba(0,0,0,0.35);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index: 60;
+    padding: 20px;
+  }
+  .overlay.show{ display:flex; }
+  .modal-card{
+    background:white;
+    border-radius: 18px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 16px 36px rgba(0,0,0,0.3);
+  }
+  .modal-title{
+    font-family:'Jua', sans-serif;
+    font-size: 18px;
+    margin: 0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .folder-contents{
+    min-height: 90px;
+    background: #f1f4f8;
+    border-radius: 12px;
+    padding: 12px;
+    display:flex;
+    flex-wrap:wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .folder-empty-msg{
+    color: var(--ink-soft);
+    font-size: 13px;
+    font-weight:600;
+    padding: 10px 0;
+  }
+  .modal-actions{
+    display:flex;
+    gap: 8px;
+  }
+  .modal-btn{
+    flex:1;
+    font-family:'Gothic A1', sans-serif;
+    font-weight:900;
+    font-size: 14px;
+    padding: 11px 14px;
+    border-radius: 20px;
+    border:none;
+    cursor:pointer;
+  }
+  .modal-btn.primary{ background: var(--navy); color:white; }
+  .modal-btn.secondary{ background:#eee3cd; color: var(--ink-soft); }
+
+  #renameInput{
+    width:100%;
+    font-size: 16px;
+    font-family:'Gothic A1', sans-serif;
+    font-weight:700;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 2px solid #e4dcc9;
+    outline:none;
+    margin-bottom: 16px;
+  }
+  #renameInput:focus{ border-color: var(--gold); }
+
+  .concept-card{ text-align:center; }
+  .concept-glyph{
+    font-size: 52px;
+    line-height:1;
+    margin-bottom: 12px;
+  }
+  .concept-text{
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height:1.6;
+    margin: 0 0 18px;
+  }
+
+  /* Completion */
+  .complete-screen{
+    display:none;
+    text-align:center;
+    background: white;
+    border-radius: 20px;
+    padding: 36px 28px;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+    max-width: 420px;
+    width:100%;
+    margin-top: 18px;
+  }
+  .complete-screen.show{ display:block; }
+  .stamp{
+    display:inline-block;
+    border: 4px solid var(--correct);
+    color: var(--correct);
+    font-family:'Jua', sans-serif;
+    font-size: 24px;
+    padding: 7px 20px;
+    border-radius: 8px;
+    transform: rotate(-6deg);
+    margin-bottom: 16px;
+  }
+  .complete-screen p{
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 22px;
+  }
+  .btn{
+    font-family:'Gothic A1', sans-serif;
+    font-weight:900;
+    font-size: 15px;
+    padding: 12px 24px;
+    border-radius: 24px;
+    border:none;
+    cursor:pointer;
+    background: var(--navy);
+    color: white;
+  }
+
+  .app.hidden{ display:none; }
+
+  .toast{
+    position:fixed;
+    bottom: 26px;
+    left:50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color:white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight:700;
+    opacity:0;
+    transition: opacity .2s ease, transform .2s ease;
+    z-index: 70;
+    pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="index.html">← 게시판으로</a>
+  <span class="level-pill" id="levelPill">초보자</span>
+</div>
+
+<div class="app" id="app">
+  <div class="mission-bar">
+    <div class="mission-text" id="missionText">불러오는 중...</div>
+    <div class="mission-counter" id="missionCounter">0 / 8</div>
+  </div>
+
+  <div class="desktop" id="desktop">
+    <div class="trash-zone" id="trashZone">
+      <span class="trash-badge" id="trashBadge">0</span>
+      <span class="glyph">🗑️</span>
+      <span class="label">휴지통</span>
+    </div>
+  </div>
+</div>
+
+<div class="complete-screen" id="completeScreen">
+  <div class="stamp">완료!</div>
+  <p>새 폴더 만들기, 이름 바꾸기, 복사·잘라내기·붙여넣기, 삭제까지<br>서류함 정리를 한 바퀴 다 돌았어요.</p>
+  <button class="btn" onclick="restart()">다시 연습하기</button>
+</div>
+
+<div class="context-menu" id="contextMenu"></div>
+
+<div class="overlay" id="folderOverlay">
+  <div class="modal-card">
+    <div class="modal-title"><span>📁</span><span id="folderModalTitle">폴더</span></div>
+    <div class="folder-contents" id="folderContents"></div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" id="folderPasteBtn">붙여넣기</button>
+      <button class="modal-btn primary" id="folderCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="renameOverlay">
+  <div class="modal-card">
+    <div class="modal-title"><span>✏️</span><span>이름 바꾸기</span></div>
+    <input id="renameInput" type="text">
+    <div class="modal-actions">
+      <button class="modal-btn secondary" id="renameCancelBtn">취소</button>
+      <button class="modal-btn primary" id="renameConfirmBtn">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="conceptOverlay">
+  <div class="modal-card concept-card">
+    <div class="concept-glyph" id="conceptGlyph">📁</div>
+    <p class="concept-text" id="conceptText"></p>
+    <button class="modal-btn primary" id="conceptContinueBtn">알겠어요, 해볼게요!</button>
+  </div>
+</div>
+
+<div class="overlay" id="advancedIntercept">
+  <div class="modal-card concept-card">
+    <div class="concept-glyph">🎓</div>
+    <p class="concept-text">파일 정리는 이미 잘 아실 것 같아요! 그냥 다음 게임으로 넘어가도 좋아요.</p>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" id="advancedSkipBtn">게시판으로</button>
+      <button class="modal-btn primary" id="advancedPlayBtn">그래도 연습해볼래요</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function setAppHeight(){
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--app-height', h + 'px');
+  }
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', setAppHeight);
+  }
+
+  const level = new URLSearchParams(location.search).get('level') || localStorage.getItem('oe_level') || 'beginner';
+  const levelLabels = { beginner: '초보자', intermediate: '중급자', advanced: '고급자' };
+  document.getElementById('levelPill').textContent = levelLabels[level] || '초보자';
+
+  let uidCounter = 0;
+  function nextId(){ return 'item-' + (++uidCounter); }
+
+  function freshDesktopItems(){
+    return [
+      { id: nextId(), type: 'folder', name: '문서', glyph: '📁', contents: [] },
+      { id: nextId(), type: 'folder', name: '사진', glyph: '📁', contents: [] },
+      { id: nextId(), type: 'file', name: '회의록.txt', glyph: '📄' }
+    ];
+  }
+
+  let desktopItems = freshDesktopItems();
+  let clipboard = null;
+  let trashCount = 0;
+  let selectedIconEl = null;
+  let openFolderItem = null;
+
+  const skipIntro = level !== 'beginner';
+
+  const baseMissions = [
+    { check: 'open', glyph: '📁',
+      intro: '폴더는 파일을 종류별로 담아두는 상자 같은 거예요. 상자 안을 보려면 두 번 빠르게 톡톡 눌러야(더블클릭) 열려요.',
+      text: '"문서" 폴더를 두 번 탭(더블클릭)해서 열어보세요' },
+    { check: 'close', glyph: '↩️',
+      intro: '폴더 안을 보고 난 뒤에는 다시 나가서 바탕화면으로 돌아갈 수 있어요. "닫기" 버튼을 누르면 돼요.',
+      text: '"닫기"를 눌러서 폴더 밖으로 나가보세요' },
+    { check: 'newfolder', glyph: '➕',
+      intro: '새 폴더를 만들면 파일들을 종류별로 나눠서 정리할 수 있어요. 빈 화면을 길게 누르거나(또는 마우스 오른쪽 버튼) 누르면 만들기 메뉴가 나와요.',
+      text: '빈 바탕화면을 길게 누르거나 마우스 오른쪽 버튼을 눌러 "새 폴더 만들기"를 선택하세요' },
+    { check: 'rename', glyph: '✏️',
+      intro: '폴더나 파일 이름은 언제든 바꿀 수 있어요. 알아보기 쉬운 이름으로 바꿔두면 나중에 찾을 때 훨씬 편해요.',
+      text: '새로 만든 폴더의 이름을 원하는 대로 바꿔보세요' },
+    { check: 'copy', glyph: '📋',
+      intro: '"복사"를 하면 원본은 그대로 있고, 똑같은 파일이 하나 더 생겨요. 원본을 지우지 않으면서 여러 곳에 두고 싶을 때 써요.',
+      text: '"회의록.txt" 파일을 길게 눌러(또는 우클릭) "복사"를 선택하세요' },
+    { check: 'paste', glyph: '📥',
+      intro: '복사하거나 잘라낸 파일은 아무 데서나 "붙여넣기"를 하면 그 자리에 가져다 놓을 수 있어요.',
+      text: '빈 바탕화면을 길게 눌러 "붙여넣기"를 선택하세요' },
+    { check: 'cut', glyph: '✂️',
+      intro: '"잘라내기"는 복사와 비슷하지만, 원본을 그 자리에서 없애고 다른 곳으로 옮기는 거예요. 붙여넣기 전까지는 살짝 흐리게 보여요.',
+      text: '"사진" 폴더를 길게 눌러 "잘라내기"를 선택하세요' },
+    { check: 'delete', glyph: '🗑️',
+      intro: '필요 없는 파일은 휴지통으로 보내서 정리할 수 있어요. 휴지통에 들어간다고 바로 완전히 사라지는 건 아니니 너무 걱정하지 마세요.',
+      text: '필요 없는 파일을 길게 눌러 "삭제"를 선택하거나, 휴지통으로 끌어다 놓으세요' }
+  ];
+
+  // A more realistic step for intermediate/advanced: actually moving a cut
+  // item INTO a folder (pasting inside the folder modal), rather than just
+  // pasting back onto the desktop.
+  const pasteInFolderMission = { check: 'paste-in-folder', glyph: '📂',
+    intro: '잘라낸 파일은 폴더 안에 들어가서도 붙여넣을 수 있어요. 폴더를 열고 그 안에서 "붙여넣기"를 누르면 파일이 폴더 속으로 옮겨져요.',
+    text: '아까 이름 바꾼 폴더를 열어서, 그 안에서 "붙여넣기"를 눌러보세요' };
+
+  function buildMissions(){
+    if (level === 'beginner') return baseMissions;
+    return baseMissions.slice(0, 7).concat([pasteInFolderMission], baseMissions.slice(7));
+  }
+
+  const missions = buildMissions();
+  let missionIndex = 0;
+
+  const missionText = document.getElementById('missionText');
+  const missionCounter = document.getElementById('missionCounter');
+  const app = document.getElementById('app');
+  const completeScreen = document.getElementById('completeScreen');
+  const desktop = document.getElementById('desktop');
+  const trashZone = document.getElementById('trashZone');
+  const trashBadge = document.getElementById('trashBadge');
+  const contextMenu = document.getElementById('contextMenu');
+  const folderOverlay = document.getElementById('folderOverlay');
+  const folderContents = document.getElementById('folderContents');
+  const folderModalTitle = document.getElementById('folderModalTitle');
+  const folderPasteBtn = document.getElementById('folderPasteBtn');
+  const folderCloseBtn = document.getElementById('folderCloseBtn');
+  const renameOverlay = document.getElementById('renameOverlay');
+  const renameInput = document.getElementById('renameInput');
+  const renameCancelBtn = document.getElementById('renameCancelBtn');
+  const renameConfirmBtn = document.getElementById('renameConfirmBtn');
+  const toastEl = document.getElementById('toast');
+  const conceptOverlay = document.getElementById('conceptOverlay');
+  const conceptGlyph = document.getElementById('conceptGlyph');
+  const conceptText = document.getElementById('conceptText');
+  const conceptContinueBtn = document.getElementById('conceptContinueBtn');
+
+  function showMission(){
+    missionCounter.textContent = missionIndex + ' / ' + missions.length;
+    if (missionIndex >= missions.length){
+      finishGame();
+      return;
+    }
+    const mission = missions[missionIndex];
+    if (skipIntro){
+      missionText.textContent = mission.text;
+      return;
+    }
+    conceptGlyph.textContent = mission.glyph;
+    conceptText.textContent = mission.intro;
+    conceptOverlay.classList.add('show');
+    missionText.textContent = '먼저 설명을 읽어보세요 👆';
+  }
+
+  conceptContinueBtn.addEventListener('click', () => {
+    conceptOverlay.classList.remove('show');
+    missionText.textContent = missions[missionIndex].text;
+  });
+
+  function fireAction(type){
+    if (missionIndex < missions.length && missions[missionIndex].check === type){
+      missionIndex++;
+      showMission();
+      toast('잘했어요! 👍');
+    }
+  }
+
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 1200);
+  }
+
+  function finishGame(){
+    app.classList.add('hidden');
+    completeScreen.classList.add('show');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    requestAnimationFrame(() => completeScreen.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  function restart(){
+    desktopItems = freshDesktopItems();
+    clipboard = null;
+    trashCount = 0;
+    trashBadge.style.display = 'none';
+    missionIndex = 0;
+    completeScreen.classList.remove('show');
+    app.classList.remove('hidden');
+    renderDesktop();
+    showMission();
+  }
+
+  function renderDesktop(){
+    desktop.querySelectorAll('.icon').forEach(el => el.remove());
+    desktopItems.forEach(item => {
+      const el = buildIconEl(item, desktopItems);
+      desktop.appendChild(el);
+    });
+  }
+
+  function buildIconEl(item, listRef){
+    const el = document.createElement('div');
+    el.className = 'icon';
+    if (clipboard && clipboard.mode === 'cut' && clipboard.item.id === item.id){
+      el.classList.add('cutting');
+    }
+    el.innerHTML = '<span class="glyph">' + item.glyph + '</span><span class="label">' + escapeHtml(item.name) + '</span>';
+    attachIconEvents(el, item, listRef);
+    return el;
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function attachIconEvents(el, item, listRef){
+    let pressTimer = null;
+    let startX = 0, startY = 0;
+    let dragging = false;
+    let isDown = false;
+    let lastTap = 0;
+
+    el.addEventListener('pointerdown', (e) => {
+      isDown = true;
+      startX = e.clientX; startY = e.clientY;
+      dragging = false;
+      // Long-press works on every input type here, not just touch. If the
+      // user holds still without moving (a real drag cancels this the
+      // moment they move), the menu opens — mouse users who instinctively
+      // hold down still get a response instead of nothing happening.
+      pressTimer = setTimeout(() => {
+        openContextMenu(e.clientX, e.clientY, item, listRef);
+        pressTimer = null;
+      }, 500);
+    });
+
+    el.addEventListener('pointermove', (e) => {
+      if (!isDown) return; // hovering without pressing should never start a drag
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (!dragging && Math.hypot(dx, dy) > 10){
+        dragging = true;
+        clearTimeout(pressTimer);
+        el.classList.add('dragging');
+        if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+      }
+      if (dragging){
+        const overTrash = isOverTrash(e.clientX, e.clientY);
+        trashZone.classList.toggle('drag-over', overTrash);
+      }
+    });
+
+    el.addEventListener('pointerup', (e) => {
+      isDown = false;
+      clearTimeout(pressTimer);
+      if (dragging){
+        el.classList.remove('dragging');
+        trashZone.classList.remove('drag-over');
+        if (isOverTrash(e.clientX, e.clientY)){
+          removeFromList(listRef, item);
+          bumpTrash();
+          renderCurrentView();
+          fireAction('delete');
+          toast('🗑️ 삭제했어요');
+        }
+        dragging = false;
+        return;
+      }
+      const now = Date.now();
+      if (now - lastTap < 400){
+        lastTap = 0;
+        if (item.type === 'folder'){
+          openFolder(item);
+          fireAction('open');
+        }
+      } else {
+        lastTap = now;
+        selectIcon(el);
+      }
+    });
+
+    el.addEventListener('pointercancel', () => {
+      isDown = false;
+      dragging = false;
+      clearTimeout(pressTimer);
+      el.classList.remove('dragging');
+      trashZone.classList.remove('drag-over');
+    });
+
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      openContextMenu(e.clientX, e.clientY, item, listRef);
+    });
+  }
+
+  function isOverTrash(x, y){
+    const r = trashZone.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+
+  function selectIcon(el){
+    if (selectedIconEl) selectedIconEl.classList.remove('selected');
+    selectedIconEl = el;
+    el.classList.add('selected');
+  }
+
+  function removeFromList(list, item){
+    const idx = list.indexOf(item);
+    if (idx !== -1) list.splice(idx, 1);
+  }
+
+  function bumpTrash(){
+    trashCount++;
+    trashBadge.textContent = trashCount;
+    trashBadge.style.display = 'block';
+  }
+
+  function renderCurrentView(){
+    renderDesktop();
+    if (openFolderItem) renderFolderModal(openFolderItem);
+  }
+
+  let deskPressTimer = null;
+  let deskStartX = 0, deskStartY = 0;
+
+  desktop.addEventListener('pointerdown', (e) => {
+    if (e.target !== desktop) return;
+    deskStartX = e.clientX; deskStartY = e.clientY;
+    deskPressTimer = setTimeout(() => {
+      openContextMenu(e.clientX, e.clientY, null, desktopItems);
+    }, 500);
+  });
+  desktop.addEventListener('pointermove', (e) => {
+    if (Math.hypot(e.clientX - deskStartX, e.clientY - deskStartY) > 10){
+      clearTimeout(deskPressTimer);
+    }
+  });
+  desktop.addEventListener('pointerup', () => clearTimeout(deskPressTimer));
+  desktop.addEventListener('contextmenu', (e) => {
+    if (e.target !== desktop) return;
+    e.preventDefault();
+    openContextMenu(e.clientX, e.clientY, null, desktopItems);
+  });
+
+  function openContextMenu(x, y, item, listRef){
+    contextMenu.innerHTML = '';
+    const buttons = [];
+
+    if (item){
+      buttons.push(['이름 바꾸기', () => { closeContextMenu(); startRename(item, listRef); }]);
+      buttons.push(['복사', () => { closeContextMenu(); clipboard = { item, mode: 'copy' }; fireAction('copy'); toast('복사했어요 📋'); }]);
+      buttons.push(['잘라내기', () => { closeContextMenu(); clipboard = { item, mode: 'cut', sourceList: listRef }; fireAction('cut'); toast('잘라냈어요 ✂️'); renderCurrentView(); }]);
+      buttons.push(['삭제', () => { closeContextMenu(); removeFromList(listRef, item); bumpTrash(); renderCurrentView(); fireAction('delete'); toast('🗑️ 삭제했어요'); }]);
+    } else {
+      buttons.push(['새 폴더 만들기', () => { closeContextMenu(); createNewFolder(listRef); }]);
+      if (clipboard){
+        buttons.push(['붙여넣기', () => { closeContextMenu(); pasteInto(listRef); }]);
+      }
+    }
+
+    buttons.forEach(([label, handler]) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.addEventListener('click', handler);
+      contextMenu.appendChild(b);
+    });
+
+    contextMenu.style.left = Math.min(x, window.innerWidth - 190) + 'px';
+    contextMenu.style.top = Math.min(y, window.innerHeight - buttons.length * 46 - 20) + 'px';
+    contextMenu.classList.add('show');
+  }
+
+  function closeContextMenu(){
+    contextMenu.classList.remove('show');
+  }
+
+  document.addEventListener('pointerdown', (e) => {
+    if (!contextMenu.contains(e.target)) closeContextMenu();
+  });
+
+  function createNewFolder(listRef){
+    let base = '새 폴더', name = base, n = 1;
+    const names = listRef.map(i => i.name);
+    while (names.includes(name)){ n++; name = base + ' (' + n + ')'; }
+    const folder = { id: nextId(), type: 'folder', name: name, glyph: '📁', contents: [] };
+    listRef.push(folder);
+    renderCurrentView();
+    fireAction('newfolder');
+    startRename(folder, listRef);
+  }
+
+  let renameTarget = null;
+
+  function startRename(item, listRef){
+    renameTarget = item;
+    renameInput.value = item.name;
+    renameOverlay.classList.add('show');
+    requestAnimationFrame(() => { renameInput.focus(); renameInput.select(); });
+  }
+
+  function commitRename(){
+    const newName = renameInput.value.trim();
+    if (newName && renameTarget){
+      renameTarget.name = newName;
+      fireAction('rename');
+    }
+    renameOverlay.classList.remove('show');
+    renameTarget = null;
+    renderCurrentView();
+  }
+
+  renameConfirmBtn.addEventListener('click', commitRename);
+  renameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') commitRename(); });
+  renameCancelBtn.addEventListener('click', () => {
+    renameOverlay.classList.remove('show');
+    renameTarget = null;
+  });
+
+  function pasteInto(targetList, isInsideFolder){
+    if (!clipboard) return;
+    const src = clipboard.item;
+    let name = src.name;
+    if (clipboard.mode === 'copy'){
+      let base = name, n = 1;
+      const names = targetList.map(i => i.name);
+      while (names.includes(name)){ n++; name = base + ' - 복사본' + (n > 2 ? n : ''); }
+    }
+    const clone = {
+      id: nextId(),
+      type: src.type,
+      name: name,
+      glyph: src.glyph,
+      contents: src.type === 'folder' ? [] : undefined
+    };
+    targetList.push(clone);
+
+    if (clipboard.mode === 'cut'){
+      if (clipboard.sourceList) removeFromList(clipboard.sourceList, src);
+      clipboard = null;
+    }
+    renderCurrentView();
+    fireAction(isInsideFolder ? 'paste-in-folder' : 'paste');
+    toast('붙여넣었어요 ✅');
+  }
+
+  function openFolder(item){
+    openFolderItem = item;
+    renderFolderModal(item);
+    folderOverlay.classList.add('show');
+  }
+
+  function renderFolderModal(item){
+    folderModalTitle.textContent = item.name;
+    folderContents.innerHTML = '';
+    if (item.contents.length === 0){
+      const msg = document.createElement('div');
+      msg.className = 'folder-empty-msg';
+      msg.textContent = '안에 아무것도 없어요';
+      folderContents.appendChild(msg);
+    } else {
+      item.contents.forEach(sub => {
+        folderContents.appendChild(buildIconEl(sub, item.contents));
+      });
+    }
+    folderPasteBtn.style.display = clipboard ? 'block' : 'none';
+  }
+
+  folderPasteBtn.addEventListener('click', () => {
+    if (openFolderItem) pasteInto(openFolderItem.contents, true);
+  });
+
+  folderCloseBtn.addEventListener('click', () => {
+    folderOverlay.classList.remove('show');
+    openFolderItem = null;
+    fireAction('close');
+    renderDesktop();
+  });
+
+  renderDesktop();
+  showMission();
+
+  if (level === 'advanced'){
+    document.getElementById('advancedIntercept').classList.add('show');
+  }
+  document.getElementById('advancedSkipBtn').addEventListener('click', () => {
+    location.href = 'index.html';
+  });
+  document.getElementById('advancedPlayBtn').addEventListener('click', () => {
+    document.getElementById('advancedIntercept').classList.remove('show');
+  });
+</script>
+
+</body>
+</html>

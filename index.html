@@ -255,9 +255,8 @@
       <span class="stars" id="typingStars">☆☆☆</span>
     </a>
 
-    <a class="note disabled" id="fileNote">
+    <a class="note" id="fileNote" href="file-manager.html">
       <span class="pin"></span>
-      <span class="soon-stamp">준비중</span>
       <span class="note-icon">🗂️</span>
       <h2 class="note-title">파일 정리하기</h2>
       <p class="note-desc">폴더 만들기, 복사, 붙여넣기를 연습해요</p>
@@ -296,6 +295,7 @@
     localStorage.setItem(LEVEL_KEY, level);
     tabs.forEach(t => t.classList.toggle('active', t.dataset.level === level));
     document.getElementById('typingNote').href = `messenger-typing.html?level=${level}`;
+    document.getElementById('fileNote').href = `file-manager.html?level=${level}`;
   }
 
   tabs.forEach(tab => {
