@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단축키 연습</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gothic+A1:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2b3a55;
+    --ink:#2b2420;
+    --ink-soft:#5a6478;
+    --gold:#e8a33d;
+    --correct:#3f9c62;
+    --wrong:#d3555a;
+    --page:#f6f4ee;
+    --key-face:#fdfbf4;
+    --key-shadow:#c7bfa8;
+    --key-active:#e8a33d;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    height: var(--app-height, 100vh);
+    overflow:hidden;
+    background: var(--page);
+    font-family:'Gothic A1', sans-serif;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 16px 14px 14px;
+    user-select:none;
+  }
+
+  .topbar{
+    width:100%;
+    max-width: 520px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 10px;
+    flex-shrink:0;
+  }
+  .back-link{
+    text-decoration:none;
+    color: var(--ink-soft);
+    font-weight:700;
+    font-size:14px;
+    background: white;
+    padding: 7px 14px;
+    border-radius: 20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  }
+  .level-pill{
+    font-family:'Jua', sans-serif;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+  }
+
+  .app{
+    width:100%;
+    max-width: 520px;
+    flex: 1;
+    min-height: 0;
+    max-height: 720px;
+    display:flex;
+    flex-direction:column;
+    border-radius: 22px;
+    overflow:hidden;
+    box-shadow: 0 16px 34px rgba(0,0,0,0.18);
+    background: white;
+  }
+
+  .mission-bar{
+    background: var(--navy);
+    color:white;
+    padding: 14px 18px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    flex-shrink:0;
+  }
+  .mission-bar .mission-text{
+    flex:1;
+    min-width:0;
+    font-size: 14px;
+    font-weight:700;
+  }
+  .mission-bar .mission-counter{
+    font-family:'Jua', sans-serif;
+    background: rgba(255,255,255,0.14);
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+
+  .stage{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 26px;
+    padding: 24px;
+    background: linear-gradient(160deg, #fbf8f1, #f1ede2);
+  }
+
+  .action-label{
+    font-family:'Jua', sans-serif;
+    font-size: clamp(22px, 6vw, 30px);
+    color: var(--ink);
+    text-align:center;
+  }
+  .action-sub{
+    font-size: 14px;
+    color: var(--ink-soft);
+    font-weight:600;
+    margin-top: -14px;
+    text-align:center;
+  }
+
+  .combo-row{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+  }
+  .plus{
+    font-family:'Jua', sans-serif;
+    font-size: 26px;
+    color: var(--ink-soft);
+  }
+
+  .keycap{
+    min-width: 96px;
+    height: 96px;
+    padding: 0 18px;
+    border-radius: 16px;
+    background: var(--key-face);
+    border: 3px solid var(--key-shadow);
+    box-shadow: 0 6px 0 var(--key-shadow);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Jua', sans-serif;
+    font-size: 26px;
+    color: var(--ink);
+    cursor:pointer;
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  .keycap:active, .keycap.pressed{
+    transform: translateY(6px);
+    box-shadow: 0 0 0 var(--key-shadow);
+  }
+  .keycap.armed{
+    background: var(--key-active);
+    border-color: #c07f22;
+    box-shadow: 0 6px 0 #c07f22;
+  }
+  .keycap.hint-pulse{
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ box-shadow: 0 6px 0 var(--key-shadow); }
+    50%{ box-shadow: 0 6px 0 var(--key-shadow), 0 0 0 8px rgba(232,163,61,0.25); }
+  }
+
+  .timer-ring{
+    width: 10px;
+  }
+
+  .ring-wrap{
+    position:relative;
+    width: 64px;
+    height: 64px;
+    display:none;
+  }
+  .ring-wrap.show{ display:block; }
+  .ring-wrap svg{ transform: rotate(-90deg); }
+  .ring-bg{ fill:none; stroke:#e4dcc9; stroke-width:6; }
+  .ring-fg{ fill:none; stroke: var(--gold); stroke-width:6; stroke-linecap:round; }
+
+  .feedback{
+    min-height: 22px;
+    font-size: 14px;
+    font-weight:700;
+    color: var(--correct);
+  }
+  .feedback.wrong{ color: var(--wrong); }
+
+  .hand-hint{
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align:center;
+    max-width: 320px;
+    line-height:1.5;
+  }
+
+  .complete-screen{
+    display:none;
+    text-align:center;
+    background: white;
+    border-radius: 20px;
+    padding: 36px 28px;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+    max-width: 420px;
+    width:100%;
+    margin-top: 18px;
+  }
+  .complete-screen.show{ display:block; }
+  .stamp{
+    display:inline-block;
+    border: 4px solid var(--correct);
+    color: var(--correct);
+    font-family:'Jua', sans-serif;
+    font-size: 24px;
+    padding: 7px 20px;
+    border-radius: 8px;
+    transform: rotate(-6deg);
+    margin-bottom: 16px;
+  }
+  .complete-screen p{
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-bottom: 22px;
+  }
+  .btn{
+    font-family:'Gothic A1', sans-serif;
+    font-weight:900;
+    font-size: 15px;
+    padding: 12px 24px;
+    border-radius: 24px;
+    border:none;
+    cursor:pointer;
+    background: var(--navy);
+    color: white;
+  }
+  .app.hidden{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="index.html">← 게시판으로</a>
+  <span class="level-pill" id="levelPill">초보자</span>
+</div>
+
+<div class="app" id="app">
+  <div class="mission-bar">
+    <div class="mission-text" id="missionText">불러오는 중...</div>
+    <div class="mission-counter" id="missionCounter">0 / 5</div>
+  </div>
+
+  <div class="stage">
+    <div class="action-label" id="actionLabel">저장하기</div>
+    <div class="action-sub" id="actionSub">문서를 다 썼으면 이 단축키로 저장해요</div>
+
+    <div class="combo-row">
+      <div class="keycap" id="ctrlKey">Ctrl</div>
+      <div class="plus">+</div>
+      <div class="keycap" id="letterKey">S</div>
+      <div class="ring-wrap" id="ringWrap">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle class="ring-bg" cx="32" cy="32" r="26"></circle>
+          <circle class="ring-fg" id="ringFg" cx="32" cy="32" r="26" stroke-dasharray="163" stroke-dashoffset="0"></circle>
+        </svg>
+      </div>
+    </div>
+
+    <div class="hand-hint">왼손 새끼손가락으로 Ctrl을 누르고, 오른손으로 나머지 글자를 눌러보세요</div>
+
+    <div class="feedback" id="feedback"></div>
+  </div>
+</div>
+
+<div class="complete-screen" id="completeScreen">
+  <div class="stamp">완료!</div>
+  <p>자주 쓰는 단축키를 손에 익혀봤어요.<br>실제 컴퓨터에서도 Ctrl 키를 누른 채로 시도해보세요.</p>
+  <button class="btn" onclick="restart()">다시 연습하기</button>
+</div>
+
+<script>
+  function setAppHeight(){
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty('--app-height', h + 'px');
+  }
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', setAppHeight);
+
+  const level = new URLSearchParams(location.search).get('level') || localStorage.getItem('oe_level') || 'beginner';
+  const levelLabels = { beginner: '초보자', intermediate: '중급자', advanced: '고급자' };
+  document.getElementById('levelPill').textContent = levelLabels[level] || '초보자';
+
+  // key -> { name (Korean action), sub (short explanation) }
+  const KEY_INFO = {
+    S: { name: '저장하기', sub: '문서를 다 썼으면 이 단축키로 저장해요' },
+    C: { name: '복사하기', sub: '원본은 그대로 두고 내용을 복사해요' },
+    V: { name: '붙여넣기', sub: '복사하거나 잘라낸 내용을 가져다 놓아요' },
+    X: { name: '잘라내기', sub: '내용을 오려서 다른 곳으로 옮길 준비를 해요' },
+    Z: { name: '실행 취소', sub: '방금 한 작업을 하나 되돌려요' },
+    A: { name: '전체 선택', sub: '화면에 있는 내용을 한 번에 다 선택해요' }
+  };
+
+  const levelSettings = {
+    beginner:     { pool: ['S'],                         rounds: 5,  timed: false },
+    intermediate: { pool: ['S', 'C', 'V', 'X'],           rounds: 8,  timed: false },
+    advanced:     { pool: ['S', 'C', 'V', 'X', 'Z', 'A'], rounds: 10, timed: true  }
+  };
+  const settings = levelSettings[level] || levelSettings.beginner;
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Build a round list of target keys, avoiding the same key twice in a row
+  // when the pool is big enough to allow it.
+  function buildRounds(){
+    const rounds = [];
+    let last = null;
+    for (let i = 0; i < settings.rounds; i++){
+      let choices = settings.pool;
+      if (choices.length > 1) choices = choices.filter(k => k !== last);
+      const pick = choices[Math.floor(Math.random() * choices.length)];
+      rounds.push(pick);
+      last = pick;
+    }
+    return rounds;
+  }
+
+  let rounds = buildRounds();
+  let current = 0;
+  let armed = false;
+  let armTimer = null;
+  let ringTimer = null;
+  const RING_SECONDS = 4;
+  const RING_CIRC = 163;
+
+  const app = document.getElementById('app');
+  const completeScreen = document.getElementById('completeScreen');
+  const missionText = document.getElementById('missionText');
+  const missionCounter = document.getElementById('missionCounter');
+  const actionLabel = document.getElementById('actionLabel');
+  const actionSub = document.getElementById('actionSub');
+  const ctrlKeyEl = document.getElementById('ctrlKey');
+  const letterKeyEl = document.getElementById('letterKey');
+  const feedback = document.getElementById('feedback');
+  const ringWrap = document.getElementById('ringWrap');
+  const ringFg = document.getElementById('ringFg');
+
+  function showRound(){
+    missionCounter.textContent = current + ' / ' + rounds.length;
+    if (current >= rounds.length){
+      finishGame();
+      return;
+    }
+    const key = rounds[current];
+    const info = KEY_INFO[key];
+    actionLabel.textContent = info.name;
+    actionSub.textContent = info.sub;
+    letterKeyEl.textContent = key;
+    disarm();
+    feedback.textContent = '';
+    feedback.classList.remove('wrong');
+    ctrlKeyEl.classList.add('hint-pulse');
+
+    if (settings.timed){
+      startRing();
+    } else {
+      ringWrap.classList.remove('show');
+    }
+  }
+
+  function startRing(){
+    ringWrap.classList.add('show');
+    ringFg.style.transition = 'none';
+    ringFg.style.strokeDashoffset = '0';
+    // force reflow so the transition below actually animates from 0
+    void ringFg.getBoundingClientRect();
+    ringFg.style.transition = `stroke-dashoffset ${RING_SECONDS}s linear`;
+    ringFg.style.strokeDashoffset = String(RING_CIRC);
+    clearTimeout(ringTimer);
+    ringTimer = setTimeout(() => {
+      // Gentle re-pulse, not a penalty — just try the same one again.
+      feedback.textContent = '천천히 다시 해봐요';
+      feedback.classList.remove('wrong');
+      startRing();
+    }, RING_SECONDS * 1000);
+  }
+
+  function arm(){
+    armed = true;
+    ctrlKeyEl.classList.add('armed');
+    ctrlKeyEl.classList.remove('hint-pulse');
+    clearTimeout(armTimer);
+    armTimer = setTimeout(disarm, 2000);
+  }
+
+  function disarm(){
+    armed = false;
+    ctrlKeyEl.classList.remove('armed');
+    clearTimeout(armTimer);
+  }
+
+  function nextRound(){
+    clearTimeout(ringTimer);
+    current++;
+    showRound();
+  }
+
+  function succeed(){
+    feedback.textContent = '정확해요! 👍';
+    feedback.classList.remove('wrong');
+    letterKeyEl.classList.add('pressed');
+    setTimeout(() => letterKeyEl.classList.remove('pressed'), 150);
+    setTimeout(nextRound, 350);
+  }
+
+  function tryLetterPress(){
+    if (armed){
+      disarm();
+      succeed();
+    } else {
+      feedback.textContent = 'Ctrl을 먼저 눌러보세요';
+      feedback.classList.add('wrong');
+      ctrlKeyEl.classList.add('hint-pulse');
+    }
+  }
+
+  ctrlKeyEl.addEventListener('pointerdown', () => arm());
+  letterKeyEl.addEventListener('pointerdown', () => tryLetterPress());
+
+  // Real keyboard support (desktop). preventDefault so Ctrl+S etc. don't
+  // trigger the browser's own save/print/etc. dialogs while practicing.
+  document.addEventListener('keydown', (e) => {
+    if (current >= rounds.length) return;
+    const targetKey = rounds[current];
+    if (e.ctrlKey && e.key && e.key.toUpperCase() === targetKey){
+      e.preventDefault();
+      disarm();
+      succeed();
+    } else if (e.ctrlKey){
+      e.preventDefault();
+    }
+  });
+
+  function finishGame(){
+    clearTimeout(ringTimer);
+    clearTimeout(armTimer);
+    app.classList.add('hidden');
+    completeScreen.classList.add('show');
+    requestAnimationFrame(() => completeScreen.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  function restart(){
+    rounds = buildRounds();
+    current = 0;
+    completeScreen.classList.remove('show');
+    app.classList.remove('hidden');
+    showRound();
+  }
+
+  showRound();
+</script>
+
+</body>
+</html>

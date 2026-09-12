@@ -263,18 +263,16 @@
       <span class="stars">☆☆☆</span>
     </a>
 
-    <a class="note disabled" id="shortcutNote">
+    <a class="note" id="shortcutNote" href="shortcut-rhythm.html">
       <span class="pin"></span>
-      <span class="soon-stamp">준비중</span>
       <span class="note-icon">🎹</span>
       <h2 class="note-title">단축키 리듬</h2>
       <p class="note-desc">Ctrl+C, Ctrl+V를 리듬에 맞춰 눌러봐요</p>
       <span class="stars">☆☆☆</span>
     </a>
 
-    <a class="note disabled" id="storyNote">
+    <a class="note" id="storyNote" href="day-one-mission.html">
       <span class="pin"></span>
-      <span class="soon-stamp">준비중</span>
       <span class="note-icon">📋</span>
       <h2 class="note-title">출근 첫날 미션</h2>
       <p class="note-desc">배운 걸 모두 모아 실전처럼 연습해요</p>
@@ -296,6 +294,7 @@
     tabs.forEach(t => t.classList.toggle('active', t.dataset.level === level));
     document.getElementById('typingNote').href = `messenger-typing.html?level=${level}`;
     document.getElementById('fileNote').href = `file-manager.html?level=${level}`;
+    document.getElementById('shortcutNote').href = `shortcut-rhythm.html?level=${level}`;
   }
 
   tabs.forEach(tab => {
