@@ -143,7 +143,12 @@
     border-radius: 6px;
   }
   .icon.cutting{ opacity: 0.45; }
-  .icon.dragging{ opacity:0.5; }
+  .icon.dragging{
+    opacity: 0.9;
+    transform: scale(1.08);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.28);
+    pointer-events: none;
+  }
 
   .trash-zone{
     position:absolute;
@@ -156,6 +161,8 @@
     gap: 2px;
     padding: 8px 4px;
     border-radius: 12px;
+    cursor: pointer;
+    touch-action: none;
   }
   .trash-zone.drag-over{
     background: rgba(211,85,90,0.18);
@@ -187,7 +194,7 @@
     box-shadow: 0 10px 26px rgba(0,0,0,0.25);
     padding: 6px;
     display:none;
-    z-index: 50;
+    z-index: 80;
     min-width: 160px;
   }
   .context-menu.show{ display:block; }
@@ -398,6 +405,18 @@
   </div>
 </div>
 
+<div class="overlay" id="trashOverlay">
+  <div class="modal-card">
+    <div class="modal-title"><span>🗑️</span><span>휴지통</span></div>
+    <div class="folder-contents" id="trashContents"></div>
+    <p class="folder-empty-msg" id="trashHint" style="display:none; margin:-6px 0 12px; text-align:center;">삭제한 항목을 길게 누르거나 우클릭하면 되돌릴 수 있어요</p>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" id="trashEmptyBtn">휴지통 비우기</button>
+      <button class="modal-btn primary" id="trashCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="renameOverlay">
   <div class="modal-card">
     <div class="modal-title"><span>✏️</span><span>이름 바꾸기</span></div>
@@ -458,7 +477,7 @@
 
   let desktopItems = freshDesktopItems();
   let clipboard = null;
-  let trashCount = 0;
+  let trashItems = []; // { item, sourceList }
   let selectedIconEl = null;
   let openFolderItem = null;
 
@@ -519,6 +538,11 @@
   const folderModalTitle = document.getElementById('folderModalTitle');
   const folderPasteBtn = document.getElementById('folderPasteBtn');
   const folderCloseBtn = document.getElementById('folderCloseBtn');
+  const trashOverlay = document.getElementById('trashOverlay');
+  const trashContents = document.getElementById('trashContents');
+  const trashHint = document.getElementById('trashHint');
+  const trashEmptyBtn = document.getElementById('trashEmptyBtn');
+  const trashCloseBtn = document.getElementById('trashCloseBtn');
   const renameOverlay = document.getElementById('renameOverlay');
   const renameInput = document.getElementById('renameInput');
   const renameCancelBtn = document.getElementById('renameCancelBtn');
@@ -576,8 +600,8 @@
   function restart(){
     desktopItems = freshDesktopItems();
     clipboard = null;
-    trashCount = 0;
-    trashBadge.style.display = 'none';
+    trashItems = [];
+    updateTrashBadge();
     missionIndex = 0;
     completeScreen.classList.remove('show');
     app.classList.remove('hidden');
@@ -588,19 +612,19 @@
   function renderDesktop(){
     desktop.querySelectorAll('.icon').forEach(el => el.remove());
     desktopItems.forEach(item => {
-      const el = buildIconEl(item, desktopItems);
+      const el = buildIconEl(item, desktopItems, 'normal');
       desktop.appendChild(el);
     });
   }
 
-  function buildIconEl(item, listRef){
+  function buildIconEl(item, listRef, mode){
     const el = document.createElement('div');
     el.className = 'icon';
     if (clipboard && clipboard.mode === 'cut' && clipboard.item.id === item.id){
       el.classList.add('cutting');
     }
     el.innerHTML = '<span class="glyph">' + item.glyph + '</span><span class="label">' + escapeHtml(item.name) + '</span>';
-    attachIconEvents(el, item, listRef);
+    attachIconEvents(el, item, listRef, mode || 'normal');
     return el;
   }
 
@@ -610,7 +634,7 @@
     return d.innerHTML;
   }
 
-  function attachIconEvents(el, item, listRef){
+  function attachIconEvents(el, item, listRef, mode){
     let pressTimer = null;
     let startX = 0, startY = 0;
     let dragging = false;
@@ -626,21 +650,33 @@
       // moment they move), the menu opens — mouse users who instinctively
       // hold down still get a response instead of nothing happening.
       pressTimer = setTimeout(() => {
-        openContextMenu(e.clientX, e.clientY, item, listRef);
+        openContextMenu(e.clientX, e.clientY, item, listRef, mode);
         pressTimer = null;
       }, 500);
     });
 
+    let originRect = null;
+    let grabDX = 0, grabDY = 0;
+
     el.addEventListener('pointermove', (e) => {
       if (!isDown) return; // hovering without pressing should never start a drag
+      if (mode === 'trash') return; // trashed items are restored via menu, not dragged
       const dx = e.clientX - startX, dy = e.clientY - startY;
       if (!dragging && Math.hypot(dx, dy) > 10){
         dragging = true;
         clearTimeout(pressTimer);
+        originRect = el.getBoundingClientRect();
+        grabDX = startX - originRect.left;
+        grabDY = startY - originRect.top;
+        el.style.position = 'fixed';
+        el.style.width = originRect.width + 'px';
+        el.style.zIndex = 55;
         el.classList.add('dragging');
         if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
       }
       if (dragging){
+        el.style.left = (e.clientX - grabDX) + 'px';
+        el.style.top = (e.clientY - grabDY) + 'px';
         const overTrash = isOverTrash(e.clientX, e.clientY);
         trashZone.classList.toggle('drag-over', overTrash);
       }
@@ -650,14 +686,11 @@
       isDown = false;
       clearTimeout(pressTimer);
       if (dragging){
-        el.classList.remove('dragging');
         trashZone.classList.remove('drag-over');
         if (isOverTrash(e.clientX, e.clientY)){
-          removeFromList(listRef, item);
-          bumpTrash();
-          renderCurrentView();
-          fireAction('delete');
-          toast('🗑️ 삭제했어요');
+          dropIntoTrash(el, item, listRef);
+        } else {
+          snapBack(el, originRect);
         }
         dragging = false;
         return;
@@ -665,7 +698,7 @@
       const now = Date.now();
       if (now - lastTap < 400){
         lastTap = 0;
-        if (item.type === 'folder'){
+        if (mode !== 'trash' && item.type === 'folder'){
           openFolder(item);
           fireAction('open');
         }
@@ -677,16 +710,59 @@
 
     el.addEventListener('pointercancel', () => {
       isDown = false;
+      if (dragging) snapBack(el, originRect);
       dragging = false;
       clearTimeout(pressTimer);
-      el.classList.remove('dragging');
       trashZone.classList.remove('drag-over');
     });
 
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      openContextMenu(e.clientX, e.clientY, item, listRef);
+      openContextMenu(e.clientX, e.clientY, item, listRef, mode);
     });
+  }
+
+  // Animate the icon shrinking into the trash bin, then actually move the
+  // data into trashItems (restorable) once the animation finishes.
+  function dropIntoTrash(el, item, listRef){
+    const trashRect = trashZone.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    el.style.transition = 'left .22s ease, top .22s ease, transform .22s ease, opacity .22s ease';
+    el.style.left = (trashRect.left + trashRect.width / 2 - elRect.width / 2) + 'px';
+    el.style.top = (trashRect.top + trashRect.height / 2 - elRect.height / 2) + 'px';
+    el.style.transform = 'scale(0.15)';
+    el.style.opacity = '0.15';
+    setTimeout(() => {
+      removeFromList(listRef, item);
+      trashItems.push({ item: item, sourceList: listRef });
+      updateTrashBadge();
+      renderCurrentView();
+      fireAction('delete');
+      toast('🗑️ 삭제했어요');
+    }, 220);
+  }
+
+  // Animate the icon back to where it was picked up from, then clear the
+  // temporary fixed-position styles so it settles back into the normal
+  // flex layout in the same spot.
+  function snapBack(el, originRect){
+    if (!originRect){ resetDragStyles(el); return; }
+    el.style.transition = 'left .18s ease, top .18s ease';
+    el.style.left = originRect.left + 'px';
+    el.style.top = originRect.top + 'px';
+    setTimeout(() => resetDragStyles(el), 190);
+  }
+
+  function resetDragStyles(el){
+    el.style.position = '';
+    el.style.left = '';
+    el.style.top = '';
+    el.style.width = '';
+    el.style.zIndex = '';
+    el.style.transform = '';
+    el.style.opacity = '';
+    el.style.transition = '';
+    el.classList.remove('dragging');
   }
 
   function isOverTrash(x, y){
@@ -705,15 +781,15 @@
     if (idx !== -1) list.splice(idx, 1);
   }
 
-  function bumpTrash(){
-    trashCount++;
-    trashBadge.textContent = trashCount;
-    trashBadge.style.display = 'block';
+  function updateTrashBadge(){
+    trashBadge.textContent = trashItems.length;
+    trashBadge.style.display = trashItems.length > 0 ? 'block' : 'none';
   }
 
   function renderCurrentView(){
     renderDesktop();
     if (openFolderItem) renderFolderModal(openFolderItem);
+    if (trashOverlay.classList.contains('show')) renderTrashModal();
   }
 
   let deskPressTimer = null;
@@ -723,7 +799,7 @@
     if (e.target !== desktop) return;
     deskStartX = e.clientX; deskStartY = e.clientY;
     deskPressTimer = setTimeout(() => {
-      openContextMenu(e.clientX, e.clientY, null, desktopItems);
+      openContextMenu(e.clientX, e.clientY, null, desktopItems, 'normal');
     }, 500);
   });
   desktop.addEventListener('pointermove', (e) => {
@@ -735,18 +811,85 @@
   desktop.addEventListener('contextmenu', (e) => {
     if (e.target !== desktop) return;
     e.preventDefault();
-    openContextMenu(e.clientX, e.clientY, null, desktopItems);
+    openContextMenu(e.clientX, e.clientY, null, desktopItems, 'normal');
   });
 
-  function openContextMenu(x, y, item, listRef){
+  // Tapping the trash bin opens it like a folder, showing what's inside.
+  trashZone.addEventListener('pointerup', (e) => {
+    e.stopPropagation();
+    openTrash();
+  });
+
+  function openTrash(){
+    renderTrashModal();
+    trashOverlay.classList.add('show');
+  }
+
+  function renderTrashModal(){
+    trashContents.innerHTML = '';
+    if (trashItems.length === 0){
+      const msg = document.createElement('div');
+      msg.className = 'folder-empty-msg';
+      msg.textContent = '휴지통이 비어있어요';
+      trashContents.appendChild(msg);
+      trashHint.style.display = 'none';
+    } else {
+      trashItems.forEach(entry => {
+        trashContents.appendChild(buildIconEl(entry.item, trashItems, 'trash'));
+      });
+      trashHint.style.display = 'block';
+    }
+  }
+
+  function restoreFromTrash(item){
+    const entry = trashItems.find(e => e.item.id === item.id);
+    if (!entry) return;
+    entry.sourceList.push(entry.item);
+    trashItems = trashItems.filter(e => e.item.id !== item.id);
+    updateTrashBadge();
+    renderTrashModal();
+    renderCurrentView();
+    toast('복원했어요 ✅');
+  }
+
+  function permanentlyDelete(item){
+    trashItems = trashItems.filter(e => e.item.id !== item.id);
+    updateTrashBadge();
+    renderTrashModal();
+    toast('완전히 삭제했어요');
+  }
+
+  trashEmptyBtn.addEventListener('click', () => {
+    trashItems = [];
+    updateTrashBadge();
+    renderTrashModal();
+    toast('휴지통을 비웠어요 🗑️');
+  });
+
+  trashCloseBtn.addEventListener('click', () => {
+    trashOverlay.classList.remove('show');
+  });
+
+  function openContextMenu(x, y, item, listRef, mode){
     contextMenu.innerHTML = '';
     const buttons = [];
 
-    if (item){
+    if (mode === 'trash' && item){
+      buttons.push(['복원', () => { closeContextMenu(); restoreFromTrash(item); }]);
+      buttons.push(['완전히 삭제', () => { closeContextMenu(); permanentlyDelete(item); }]);
+    } else if (item){
       buttons.push(['이름 바꾸기', () => { closeContextMenu(); startRename(item, listRef); }]);
       buttons.push(['복사', () => { closeContextMenu(); clipboard = { item, mode: 'copy' }; fireAction('copy'); toast('복사했어요 📋'); }]);
       buttons.push(['잘라내기', () => { closeContextMenu(); clipboard = { item, mode: 'cut', sourceList: listRef }; fireAction('cut'); toast('잘라냈어요 ✂️'); renderCurrentView(); }]);
-      buttons.push(['삭제', () => { closeContextMenu(); removeFromList(listRef, item); bumpTrash(); renderCurrentView(); fireAction('delete'); toast('🗑️ 삭제했어요'); }]);
+      buttons.push(['삭제', () => {
+        closeContextMenu();
+        removeFromList(listRef, item);
+        trashItems.push({ item: item, sourceList: listRef });
+        updateTrashBadge();
+        renderCurrentView();
+        fireAction('delete');
+        toast('🗑️ 삭제했어요');
+      }]);
     } else {
       buttons.push(['새 폴더 만들기', () => { closeContextMenu(); createNewFolder(listRef); }]);
       if (clipboard){
