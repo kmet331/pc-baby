@@ -133,10 +133,45 @@
     align-items:center;
     gap: 14px;
   }
+  .keycap-wrap{
+    position:relative;
+  }
+  .step-badge{
+    position:absolute;
+    top:-10px; left:-10px;
+    width:22px; height:22px;
+    border-radius:50%;
+    background: var(--navy);
+    color:white;
+    font-family:'Jua', sans-serif;
+    font-size: 12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:2;
+  }
   .plus{
     font-family:'Jua', sans-serif;
     font-size: 26px;
     color: var(--ink-soft);
+    transition: opacity .15s ease;
+  }
+  .arrow-hint{
+    font-family:'Jua', sans-serif;
+    font-size: 22px;
+    color: var(--gold);
+    width: 22px;
+    text-align:center;
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .arrow-hint.show{
+    opacity: 1;
+    animation: nudge 0.8s ease-in-out infinite;
+  }
+  @keyframes nudge{
+    0%,100%{ transform: translateX(0); }
+    50%{ transform: translateX(4px); }
   }
 
   .keycap{
@@ -172,6 +207,14 @@
     0%,100%{ box-shadow: 0 6px 0 var(--key-shadow); }
     50%{ box-shadow: 0 6px 0 var(--key-shadow), 0 0 0 8px rgba(232,163,61,0.25); }
   }
+  .keycap.shake{
+    animation: keyShake .3s ease;
+  }
+  @keyframes keyShake{
+    0%,100%{ transform: translateX(0); }
+    25%{ transform: translateX(-6px); }
+    75%{ transform: translateX(6px); }
+  }
 
   .timer-ring{
     width: 10px;
@@ -187,6 +230,7 @@
   .ring-wrap svg{ transform: rotate(-90deg); }
   .ring-bg{ fill:none; stroke:#e4dcc9; stroke-width:6; }
   .ring-fg{ fill:none; stroke: var(--gold); stroke-width:6; stroke-linecap:round; }
+  .ring-fg.timeout{ stroke: var(--wrong); }
 
   .feedback{
     min-height: 22px;
@@ -264,9 +308,16 @@
     <div class="action-sub" id="actionSub">문서를 다 썼으면 이 단축키로 저장해요</div>
 
     <div class="combo-row">
-      <div class="keycap" id="ctrlKey">Ctrl</div>
-      <div class="plus">+</div>
-      <div class="keycap" id="letterKey">S</div>
+      <div class="keycap-wrap">
+        <div class="step-badge">①</div>
+        <div class="keycap" id="ctrlKey">Ctrl</div>
+      </div>
+      <div class="arrow-hint" id="arrowHint">→</div>
+      <div class="plus" id="plusSign">+</div>
+      <div class="keycap-wrap">
+        <div class="step-badge">②</div>
+        <div class="keycap" id="letterKey">S</div>
+      </div>
       <div class="ring-wrap" id="ringWrap">
         <svg width="64" height="64" viewBox="0 0 64 64">
           <circle class="ring-bg" cx="32" cy="32" r="26"></circle>
@@ -275,7 +326,7 @@
       </div>
     </div>
 
-    <div class="hand-hint">왼손 새끼손가락으로 Ctrl을 누르고, 오른손으로 나머지 글자를 눌러보세요</div>
+    <div class="hand-hint">① Ctrl을 먼저 누르세요 → ② 그다음 글자를 누르세요<br>(두 손가락으로 동시에 눌러도 되고, 순서대로 하나씩 눌러도 돼요)</div>
 
     <div class="feedback" id="feedback"></div>
   </div>
@@ -284,6 +335,7 @@
 <div class="complete-screen" id="completeScreen">
   <div class="stamp">완료!</div>
   <p>자주 쓰는 단축키를 손에 익혀봤어요.<br>실제 컴퓨터에서도 Ctrl 키를 누른 채로 시도해보세요.</p>
+  <div class="avg-reaction" id="avgReaction" style="display:none; font-family:'Jua', sans-serif; font-size:18px; color:var(--navy); margin:-8px 0 20px;"></div>
   <button class="btn" onclick="restart()">다시 연습하기</button>
 </div>
 
@@ -300,15 +352,47 @@
   const levelLabels = { beginner: '초보자', intermediate: '중급자', advanced: '고급자' };
   document.getElementById('levelPill').textContent = levelLabels[level] || '초보자';
 
-  // key -> { name (Korean action), sub (short explanation) }
+  // key -> { name (Korean action), subs (varied real-world scenarios) }
   const KEY_INFO = {
-    S: { name: '저장하기', sub: '문서를 다 썼으면 이 단축키로 저장해요' },
-    C: { name: '복사하기', sub: '원본은 그대로 두고 내용을 복사해요' },
-    V: { name: '붙여넣기', sub: '복사하거나 잘라낸 내용을 가져다 놓아요' },
-    X: { name: '잘라내기', sub: '내용을 오려서 다른 곳으로 옮길 준비를 해요' },
-    Z: { name: '실행 취소', sub: '방금 한 작업을 하나 되돌려요' },
-    A: { name: '전체 선택', sub: '화면에 있는 내용을 한 번에 다 선택해요' }
+    S: { name: '저장하기', subs: [
+      '보고서를 다 썼어요. 저장해볼까요?',
+      '이메일 초안을 저장해두세요',
+      '사진 편집을 마쳤어요. 저장해보세요',
+      '회의록 작성이 끝났어요. 저장하세요',
+      '문서 수정을 마쳤으니 저장해두세요'
+    ]},
+    C: { name: '복사하기', subs: [
+      '원본은 그대로 두고 내용을 복사해요',
+      '이 문장을 다른 곳에도 써야 해요. 복사해보세요',
+      '표를 그대로 옮기려면 먼저 복사하세요',
+      '같은 내용을 여러 곳에 붙일 때 복사를 써요'
+    ]},
+    V: { name: '붙여넣기', subs: [
+      '복사하거나 잘라낸 내용을 가져다 놓아요',
+      '방금 복사한 내용을 여기에 붙여보세요',
+      '옮겨온 내용을 문서에 넣어보세요'
+    ]},
+    X: { name: '잘라내기', subs: [
+      '내용을 오려서 다른 곳으로 옮길 준비를 해요',
+      '이 문단을 통째로 다른 곳으로 옮겨보세요',
+      '잘못 넣은 내용을 오려서 옮겨보세요'
+    ]},
+    Z: { name: '실행 취소', subs: [
+      '방금 한 작업을 하나 되돌려요',
+      '실수로 지운 문장을 되살려보세요',
+      '방금 누른 게 잘못됐어요! 되돌려보세요'
+    ]},
+    A: { name: '전체 선택', subs: [
+      '화면에 있는 내용을 한 번에 다 선택해요',
+      '문서 전체를 한 번에 골라보세요',
+      '전부 옮기기 전에 먼저 전체 선택하세요'
+    ]}
   };
+
+  function pickSub(key){
+    const subs = KEY_INFO[key].subs;
+    return subs[Math.floor(Math.random() * subs.length)];
+  }
 
   const levelSettings = {
     beginner:     { pool: ['S'],                         rounds: 5,  timed: false },
@@ -346,6 +430,9 @@
   let armed = false;
   let armTimer = null;
   let ringTimer = null;
+  let roundStartTime = null;
+  let reactionTimes = [];
+  let timeoutCount = 0;
   const RING_SECONDS = 4;
   const RING_CIRC = 163;
 
@@ -360,6 +447,7 @@
   const feedback = document.getElementById('feedback');
   const ringWrap = document.getElementById('ringWrap');
   const ringFg = document.getElementById('ringFg');
+  const arrowHint = document.getElementById('arrowHint');
 
   function showRound(){
     missionCounter.textContent = current + ' / ' + rounds.length;
@@ -370,12 +458,13 @@
     const key = rounds[current];
     const info = KEY_INFO[key];
     actionLabel.textContent = info.name;
-    actionSub.textContent = info.sub;
+    actionSub.textContent = pickSub(key);
     letterKeyEl.textContent = key;
     disarm();
     feedback.textContent = '';
     feedback.classList.remove('wrong');
     ctrlKeyEl.classList.add('hint-pulse');
+    roundStartTime = Date.now();
 
     if (settings.timed){
       startRing();
@@ -386,6 +475,7 @@
 
   function startRing(){
     ringWrap.classList.add('show');
+    ringFg.classList.remove('timeout');
     ringFg.style.transition = 'none';
     ringFg.style.strokeDashoffset = '0';
     // force reflow so the transition below actually animates from 0
@@ -394,10 +484,16 @@
     ringFg.style.strokeDashoffset = String(RING_CIRC);
     clearTimeout(ringTimer);
     ringTimer = setTimeout(() => {
-      // Gentle re-pulse, not a penalty — just try the same one again.
-      feedback.textContent = '천천히 다시 해봐요';
-      feedback.classList.remove('wrong');
-      startRing();
+      // A real timeout, not a silent no-op: flash red, say so clearly, then
+      // give a fresh ring for another try at the same key (still no penalty
+      // to progress — but it's now an actual, acknowledged event).
+      timeoutCount++;
+      ringFg.classList.add('timeout');
+      showWrong('시간 초과! 다시 한번 도전해봐요');
+      setTimeout(() => {
+        roundStartTime = Date.now();
+        startRing();
+      }, 500);
     }, RING_SECONDS * 1000);
   }
 
@@ -405,13 +501,15 @@
     armed = true;
     ctrlKeyEl.classList.add('armed');
     ctrlKeyEl.classList.remove('hint-pulse');
+    arrowHint.classList.add('show');
     clearTimeout(armTimer);
-    armTimer = setTimeout(disarm, 2000);
+    armTimer = setTimeout(disarm, 3000);
   }
 
   function disarm(){
     armed = false;
     ctrlKeyEl.classList.remove('armed');
+    arrowHint.classList.remove('show');
     clearTimeout(armTimer);
   }
 
@@ -424,9 +522,19 @@
   function succeed(){
     feedback.textContent = '정확해요! 👍';
     feedback.classList.remove('wrong');
+    if (settings.timed && roundStartTime){
+      reactionTimes.push(Date.now() - roundStartTime);
+    }
     letterKeyEl.classList.add('pressed');
     setTimeout(() => letterKeyEl.classList.remove('pressed'), 150);
     setTimeout(nextRound, 350);
+  }
+
+  function showWrong(msg){
+    feedback.textContent = msg;
+    feedback.classList.add('wrong');
+    letterKeyEl.classList.add('shake');
+    setTimeout(() => letterKeyEl.classList.remove('shake'), 300);
   }
 
   function tryLetterPress(){
@@ -434,8 +542,7 @@
       disarm();
       succeed();
     } else {
-      feedback.textContent = 'Ctrl을 먼저 눌러보세요';
-      feedback.classList.add('wrong');
+      showWrong('Ctrl을 먼저 눌러보세요');
       ctrlKeyEl.classList.add('hint-pulse');
     }
   }
@@ -448,12 +555,14 @@
   document.addEventListener('keydown', (e) => {
     if (current >= rounds.length) return;
     const targetKey = rounds[current];
-    if (e.ctrlKey && e.key && e.key.toUpperCase() === targetKey){
-      e.preventDefault();
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const pressedKey = (e.key || '').toUpperCase();
+    if (pressedKey === targetKey){
       disarm();
       succeed();
-    } else if (e.ctrlKey){
-      e.preventDefault();
+    } else if (pressedKey){
+      showWrong(`Ctrl + ${pressedKey}는 지금 누를 키가 아니에요. Ctrl + ${targetKey}를 눌러보세요`);
     }
   });
 
@@ -462,12 +571,26 @@
     clearTimeout(armTimer);
     app.classList.add('hidden');
     completeScreen.classList.add('show');
+
+    const avgReaction = document.getElementById('avgReaction');
+    if (settings.timed && reactionTimes.length > 0){
+      const avgSec = (reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length / 1000).toFixed(1);
+      let text = `평균 반응 속도: ${avgSec}초`;
+      if (timeoutCount > 0) text += ` (시간 초과 ${timeoutCount}번)`;
+      avgReaction.textContent = text;
+      avgReaction.style.display = 'block';
+    } else {
+      avgReaction.style.display = 'none';
+    }
+
     requestAnimationFrame(() => completeScreen.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   function restart(){
     rounds = buildRounds();
     current = 0;
+    reactionTimes = [];
+    timeoutCount = 0;
     completeScreen.classList.remove('show');
     app.classList.remove('hidden');
     showRound();
